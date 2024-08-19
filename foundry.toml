@@ -4,4 +4,10 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.23"
 
+[rpc_endpoints]
+optimism-sepolia = "https://sepolia.optimism.io"
+
+[etherscan]
+optimism-sepolia = { key = "${ETHERSCAN_OPTIMISM_KEY}", chain = 11155420 }
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

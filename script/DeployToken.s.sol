@@ -9,7 +9,7 @@ import {Token} from "../src/Token.sol";
 contract DeployToken is Script {
     function run() public {
         // Retrieve the private key from the .env file
-        string memory privateKey = vm.envString("PRIVATE_KEY");
+        uint256 privateKey = vm.envUint("TEST_PRIVATE_KEY");
 
         // Define the token parameters
         string memory name = "Verifier Token";
@@ -17,7 +17,7 @@ contract DeployToken is Script {
         uint256 initialSupply = 100;
         uint8 decimals = 18;
 
-        // Convert the private key to an account
+        // Start broadcasting transactions
         vm.startBroadcast(privateKey);
 
         // Deploy the Token contract
