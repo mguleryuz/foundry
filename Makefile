@@ -8,4 +8,4 @@ build:
 
 .PHONY: deploy
 deploy:
-	@forge script script/DeployToken.s.sol --rpc-url optimism-sepolia --verify --broadcast -vvv
+	@forge script script/DeployERC20Issuance_v1.s.sol --rpc-url optimism-sepolia --verify --broadcast -vvv
