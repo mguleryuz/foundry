@@ -12,11 +12,11 @@ contract DeployERC20Issuance_v1 is Script {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
         // Define the token parameters
-        string memory name = "Verifier Token";
-        string memory symbol = "VERIFY";
-        uint256 maxSupply = 100;
+        string memory name = "JIM AIGent";
+        string memory symbol = "JIM";
+        uint256 maxSupply = type(uint256).max - 1;
         uint8 decimals = 18;
-        address initialAdmin = address(this);
+        address initialAdmin = vm.addr(privateKey);
 
         // Start broadcasting transactions
         vm.startBroadcast(privateKey);
