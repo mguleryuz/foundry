@@ -1,11 +1,14 @@
 {
-  "git.detectSubmodules": false,
-  "git.ignoreSubmodules": true,
+  "solidity.packageDefaultDependenciesContractsDirectory": "src",
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "solidity.compileUsingRemoteVersion": "v0.8.23",
+  "solidity.formatter": "forge",
   "[solidity]": {
     "editor.defaultFormatter": "JuanBlanco.solidity"
   },
-  "editor.formatOnSave": true,
+  "git.detectSubmodules": false,
   "search.exclude": {
     "lib": true
-  }
+  },
+  "editor.formatOnSave": true
 }

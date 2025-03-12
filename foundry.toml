@@ -4,6 +4,9 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.23"
 
+[fuzz]
+runs = 256
+
 [rpc_endpoints]
 optimism-sepolia = "https://inverter.web3no.de/main/evm/11155420"
 sepolia = "https://inverter.web3no.de/main/evm/11155111"
