@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.23;
+pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
@@ -9,7 +9,7 @@ import {ERC20Issuance_v1} from "../src/ERC20Issuance_v1.sol";
 contract DeployERC20Issuance_v1 is Script {
     function run() public {
         // Retrieve the private key from the .env file
-        uint256 privateKey = vm.envUint("TEST_PRIVATE_KEY");
+        uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
         // Define the token parameters
         string memory name = "Verifier Token";

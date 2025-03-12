@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-pragma solidity 0.8.23;
+pragma solidity ^0.8.0;
 
 // External Interfaces
-import {IERC20Issuance_v1} from "./IERC20Issuance_v1.sol";
+import {IERC20Issuance_v1} from "./interfaces/IERC20Issuance_v1.sol";
 
 // External Dependencies
 import {ERC20, ERC20Capped} from "@oz/token/ERC20/extensions/ERC20Capped.sol";

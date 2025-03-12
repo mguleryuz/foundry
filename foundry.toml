@@ -5,9 +5,11 @@ libs = ["lib"]
 solc = "0.8.23"
 
 [rpc_endpoints]
-optimism-sepolia = "https://sepolia.optimism.io"
+optimism-sepolia = "https://inverter.web3no.de/main/evm/11155420"
+sepolia = "https://inverter.web3no.de/main/evm/11155111"
 
 [etherscan]
 optimism-sepolia = { key = "${ETHERSCAN_OPTIMISM_KEY}", chain = 11155420 }
+sepolia = { key = "${ETHERSCAN_KEY}", chain = 11155111 }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
