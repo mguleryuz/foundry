@@ -221,22 +221,11 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
             // Only distribute to approved users who contributed
             if (user.status == UserStatus.Approved && user.amountContributed > 0) {
-                uint256 distributionAmount;
-
-                if (user.packageType == PackageType.Small) {
-                    distributionAmount = smallShare * user.amountContributed / getUserMaxContribution(userAddress);
-                } else if (user.packageType == PackageType.Medium) {
-                    distributionAmount = mediumShare * user.amountContributed / getUserMaxContribution(userAddress);
-                } else if (user.packageType == PackageType.Large) {
-                    distributionAmount = largeShare * user.amountContributed / getUserMaxContribution(userAddress);
-                }
+                uint256 distributionAmount = _calculateUserDistribution(userAddress, user.packageType);
 
                 if (distributionAmount > 0) {
-                    // Transfer tokens to user - ensure the contract has enough balance
-                    if (distributionToken.balanceOf(address(this)) >= distributionAmount) {
-                        distributionToken.safeTransfer(userAddress, distributionAmount);
-                        emit DistributionDistributed(userAddress, distributionAmount);
-                    }
+                    // Transfer tokens to user
+                    _safeTransferDistributionToken(userAddress, distributionAmount);
                 }
             }
         }
@@ -275,6 +264,23 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     }
 
     /**
+     * @inheritdoc IPreSaleOrchestrator_v1
+     */
+    function participateWithERC20(uint256 _amount) external override onlyWhitelisted presaleActive {
+        // Ensure payment currency is set and not ETH
+        if (_presaleConfig.paymentCurrency == address(0)) {
+            revert IPreSaleOrchestrator__NotDistributionToken();
+        }
+
+        // Handle core participation logic
+        _participateInternal(msg.sender, _amount);
+
+        // Transfer tokens to contract
+        IERC20 paymentToken = IERC20(_presaleConfig.paymentCurrency);
+        paymentToken.safeTransferFrom(msg.sender, address(this), _amount);
+    }
+
+    /**
      * @dev Internal function to handle participation logic
      * @param _user The address of the participating user
      * @param _amount The amount being contributed
@@ -301,42 +307,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         _presaleStats.totalContributionsReceived += _amount;
 
         emit UserParticipated(_user, _amount);
-    }
-
-    /**
-     * @inheritdoc IPreSaleOrchestrator_v1
-     */
-    function participateWithERC20(uint256 _amount) external override onlyWhitelisted presaleActive {
-        // Ensure payment currency is set and not ETH
-        if (_presaleConfig.paymentCurrency == address(0)) {
-            revert IPreSaleOrchestrator__NotDistributionToken();
-        }
-
-        // Get contribution requirement based on package type
-        uint256 requiredAmount = getUserMaxContribution(msg.sender);
-
-        // Check if amount exceeds the allocated package
-        if (_users[msg.sender].amountContributed + _amount > requiredAmount) {
-            revert IPreSaleOrchestrator__AmountIsHigherThanPackage();
-        }
-
-        // Check minimum contribution
-        uint256 minContribution = requiredAmount * MIN_CONTRIBUTION_PERCENTAGE / 100;
-        if (_users[msg.sender].amountContributed + _amount < minContribution) {
-            revert IPreSaleOrchestrator__MinimumContributionNotMet();
-        }
-
-        // Update user contribution
-        _users[msg.sender].amountContributed += _amount;
-
-        // Update stats
-        _presaleStats.totalContributionsReceived += _amount;
-
-        // Transfer tokens to contract
-        IERC20 paymentToken = IERC20(_presaleConfig.paymentCurrency);
-        paymentToken.safeTransferFrom(msg.sender, address(this), _amount);
-
-        emit UserParticipated(msg.sender, _amount);
     }
 
     /**
@@ -460,38 +430,18 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
             // Update stats
             _presaleStats.totalWhitelistedUsers += 1;
-            if (_packageType == PackageType.Small) {
-                _presaleStats.totalSmallPackages += 1;
-            } else if (_packageType == PackageType.Medium) {
-                _presaleStats.totalMediumPackages += 1;
-            } else if (_packageType == PackageType.Large) {
-                _presaleStats.totalLargePackages += 1;
-            }
+            _updatePackageStats(PackageType.Small, _packageType, 0, 1);
 
             emit WhitelistedGranted(_whitelisted, _packageType);
         } else if (user.packageType != _packageType) {
             // User is already approved but we're changing package type
+            PackageType oldPackageType = user.packageType;
 
-            // Update stats by decrementing old package and incrementing new package
-            if (user.packageType == PackageType.Small) {
-                _presaleStats.totalSmallPackages -= 1;
-            } else if (user.packageType == PackageType.Medium) {
-                _presaleStats.totalMediumPackages -= 1;
-            } else if (user.packageType == PackageType.Large) {
-                _presaleStats.totalLargePackages -= 1;
-            }
-
-            // Just update package type if already whitelisted
+            // Update user package type
             user.packageType = _packageType;
 
-            // Update stats for new package type
-            if (_packageType == PackageType.Small) {
-                _presaleStats.totalSmallPackages += 1;
-            } else if (_packageType == PackageType.Medium) {
-                _presaleStats.totalMediumPackages += 1;
-            } else if (_packageType == PackageType.Large) {
-                _presaleStats.totalLargePackages += 1;
-            }
+            // Update stats for package types
+            _updatePackageStats(oldPackageType, _packageType, 1, 0);
 
             emit WhitelistedGranted(_whitelisted, _packageType);
         }
@@ -527,38 +477,18 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
                 // Update stats
                 _presaleStats.totalWhitelistedUsers += 1;
-                if (_packageTypes[i] == PackageType.Small) {
-                    _presaleStats.totalSmallPackages += 1;
-                } else if (_packageTypes[i] == PackageType.Medium) {
-                    _presaleStats.totalMediumPackages += 1;
-                } else if (_packageTypes[i] == PackageType.Large) {
-                    _presaleStats.totalLargePackages += 1;
-                }
+                _updatePackageStats(PackageType.Small, _packageTypes[i], 0, 1);
 
                 emit WhitelistedGranted(_whitelisted[i], _packageTypes[i]);
             } else if (user.packageType != _packageTypes[i]) {
                 // User is already approved but we're changing package type
+                PackageType oldPackageType = user.packageType;
 
-                // Update stats by decrementing old package and incrementing new package
-                if (user.packageType == PackageType.Small) {
-                    _presaleStats.totalSmallPackages -= 1;
-                } else if (user.packageType == PackageType.Medium) {
-                    _presaleStats.totalMediumPackages -= 1;
-                } else if (user.packageType == PackageType.Large) {
-                    _presaleStats.totalLargePackages -= 1;
-                }
-
-                // Just update package type if already approved
+                // Update user package type
                 user.packageType = _packageTypes[i];
 
-                // Update stats for new package type
-                if (_packageTypes[i] == PackageType.Small) {
-                    _presaleStats.totalSmallPackages += 1;
-                } else if (_packageTypes[i] == PackageType.Medium) {
-                    _presaleStats.totalMediumPackages += 1;
-                } else if (_packageTypes[i] == PackageType.Large) {
-                    _presaleStats.totalLargePackages += 1;
-                }
+                // Update stats for package types
+                _updatePackageStats(oldPackageType, _packageTypes[i], 1, 0);
 
                 emit WhitelistedGranted(_whitelisted[i], _packageTypes[i]);
             }
@@ -574,13 +504,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         if (user.status == UserStatus.Approved) {
             // Update stats
             _presaleStats.totalWhitelistedUsers -= 1;
-            if (user.packageType == PackageType.Small) {
-                _presaleStats.totalSmallPackages -= 1;
-            } else if (user.packageType == PackageType.Medium) {
-                _presaleStats.totalMediumPackages -= 1;
-            } else if (user.packageType == PackageType.Large) {
-                _presaleStats.totalLargePackages -= 1;
-            }
+            _updatePackageStats(user.packageType, PackageType.Small, 1, 0);
 
             // Update user status
             user.status = UserStatus.Revoked;
@@ -664,13 +588,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
      * @inheritdoc IPreSaleOrchestrator_v1
      */
     function getTokenDistributionShare(PackageType _packageType) external view override returns (uint256) {
-        if (_packageType == PackageType.Small) {
-            return _tokenDistributionShare.smallPackageShare;
-        } else if (_packageType == PackageType.Medium) {
-            return _tokenDistributionShare.mediumPackageShare;
-        } else {
-            return _tokenDistributionShare.largePackageShare;
-        }
+        return _getPackageValue(_packageType, 0);
     }
 
     /**
@@ -697,13 +615,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
             return 0;
         }
 
-        if (user.packageType == PackageType.Small) {
-            return _contributionRequirement.smallPackageRequirement;
-        } else if (user.packageType == PackageType.Medium) {
-            return _contributionRequirement.mediumPackageRequirement;
-        } else {
-            return _contributionRequirement.largePackageRequirement;
-        }
+        return _getPackageValue(user.packageType, 1);
     }
 
     /**
@@ -789,13 +701,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
      * @inheritdoc IPreSaleOrchestrator_v1
      */
     function getContributionRequirement(PackageType _packageType) external view override returns (uint256) {
-        if (_packageType == PackageType.Small) {
-            return _contributionRequirement.smallPackageRequirement;
-        } else if (_packageType == PackageType.Medium) {
-            return _contributionRequirement.mediumPackageRequirement;
-        } else {
-            return _contributionRequirement.largePackageRequirement;
-        }
+        return _getPackageValue(_packageType, 1);
     }
 
     // --------------------------------------------------------------------------
@@ -876,5 +782,98 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
         // Use the internal participation function
         _participateInternal(msg.sender, msg.value);
+    }
+
+    // --------------------------------------------------------------------------
+    // Helper Functions
+
+    /**
+     * @dev Updates package statistics when adding or removing users from packages
+     * @param _oldPackage The old package type (in case of update)
+     * @param _newPackage The new package type
+     * @param _isUpdate 1 if updating existing user's package, 0 if adding new user
+     * @param _isNew 1 if adding new user, 0 if updating or removing
+     */
+    function _updatePackageStats(PackageType _oldPackage, PackageType _newPackage, uint256 _isUpdate, uint256 _isNew)
+        internal
+    {
+        // Handle decrementing old package stats
+        if (_isUpdate == 1) {
+            if (_oldPackage == PackageType.Small) {
+                _presaleStats.totalSmallPackages -= 1;
+            } else if (_oldPackage == PackageType.Medium) {
+                _presaleStats.totalMediumPackages -= 1;
+            } else if (_oldPackage == PackageType.Large) {
+                _presaleStats.totalLargePackages -= 1;
+            }
+        }
+
+        // Handle incrementing new package stats
+        if (_isNew == 1) {
+            if (_newPackage == PackageType.Small) {
+                _presaleStats.totalSmallPackages += 1;
+            } else if (_newPackage == PackageType.Medium) {
+                _presaleStats.totalMediumPackages += 1;
+            } else if (_newPackage == PackageType.Large) {
+                _presaleStats.totalLargePackages += 1;
+            }
+        }
+    }
+
+    /**
+     * @dev Returns the value for a specific package type
+     * @param _packageType The package type
+     * @param _valueType 0 for token share, 1 for contribution requirement
+     * @return The value associated with the package type
+     */
+    function _getPackageValue(PackageType _packageType, uint256 _valueType) internal view returns (uint256) {
+        if (_packageType == PackageType.Small) {
+            return _valueType == 0
+                ? _tokenDistributionShare.smallPackageShare
+                : _contributionRequirement.smallPackageRequirement;
+        } else if (_packageType == PackageType.Medium) {
+            return _valueType == 0
+                ? _tokenDistributionShare.mediumPackageShare
+                : _contributionRequirement.mediumPackageRequirement;
+        } else {
+            return _valueType == 0
+                ? _tokenDistributionShare.largePackageShare
+                : _contributionRequirement.largePackageRequirement;
+        }
+    }
+
+    /**
+     * @dev Safely transfers distribution tokens to a user
+     * @param _to The address to transfer tokens to
+     * @param _amount The amount of tokens to transfer
+     */
+    function _safeTransferDistributionToken(address _to, uint256 _amount) internal {
+        IERC20 distributionToken = IERC20(_presaleConfig.distributionToken);
+        if (distributionToken.balanceOf(address(this)) >= _amount) {
+            distributionToken.safeTransfer(_to, _amount);
+            emit DistributionDistributed(_to, _amount);
+        }
+    }
+
+    /**
+     * @dev Calculates the distribution amount for a user based on their package type and contribution
+     * @param _userAddress The user's address
+     * @param _packageType The user's package type
+     * @return The amount of tokens to distribute to the user
+     */
+    function _calculateUserDistribution(address _userAddress, PackageType _packageType)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 userContribution = _users[_userAddress].amountContributed;
+        if (userContribution == 0) {
+            return 0;
+        }
+
+        uint256 packageShare = _getPackageValue(_packageType, 0);
+        uint256 maxContribution = getUserMaxContribution(_userAddress);
+
+        return packageShare * userContribution / maxContribution;
     }
 }
