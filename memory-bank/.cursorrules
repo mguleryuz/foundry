@@ -5,7 +5,7 @@
 ### Code Style
 
 - Use 4-space indentation for Solidity files
-- Follow NatSpec documentation for all contracts and functions
+- Follow NatSpec documentation style for all contracts and functions
 - Version contracts explicitly in file names (e.g., `ContractName_v1.sol`)
 - Separate interfaces from implementations with 'I' prefix
 
@@ -15,6 +15,8 @@
 - Use OpenZeppelin contracts for standard functionality when possible
 - Implement proper access control for sensitive functions
 - Use custom errors instead of revert strings for gas efficiency
+- Create helper functions for repetitive code patterns
+- Handle rounding errors explicitly in distribution mechanisms
 
 ### Development Workflow
 
@@ -22,10 +24,11 @@
 - Test on Anvil local node before deploying to testnets
 - Verify contract code on Etherscan after deployment
 - Keep foundry.toml updated with network configurations
+- Update tests when modifying contract code, not the other way around
 
 ## File Organization
 
-- `src/` - Contract source files
+- `src/` - Contract source code
 - `src/interfaces/` - Contract interfaces
 - `test/` - Test files
 - `script/` - Deployment scripts
@@ -37,6 +40,9 @@
 - Test edge cases and failure modes
 - Use fuzz testing for parameter validation
 - Simulate different network conditions when relevant
+- Create specific tests for distribution ratios and rounding errors
+- Verify complete token distribution with no remainders
+- Check ratio preservation between package types
 
 ## Security Principles
 
@@ -44,21 +50,9 @@
 - Validate all inputs thoroughly
 - Follow the checks-effects-interactions pattern
 - Consider gas optimization without sacrificing readability
-
-## Production Readiness
-
-- Contracts should not contain any hardcoded test values
-- Tests should simulate production behavior as much as possible
-- If test-specific behavior is needed, modify the tests, not the contract
-- When different behavior is needed between test and production, prefer configurable parameters
-- All contract functions should work identically in production as they do in tests
-
-## Test Integration
-
-- Tests should test actual production behavior
-- Mock external services and dependencies, not internal contract logic
-- Maintain production-ready code at all times
-- When external integrations require special handling, use interfaces and dependency injection
+- Ensure no tokens can be left stranded in contracts
+- Handle rounding errors explicitly rather than ignoring them
+- Transfer any remaining tokens to admin as a safety mechanism
 
 ## Tool Usage
 
@@ -67,3 +61,38 @@
 - Use `forge fmt` to format code
 - Use `anvil` for local development
 - Use `cast` for contract interaction
+
+## Learnings
+
+### Token Distribution
+
+- Integer division in Solidity can result in small rounding errors (often just 1 wei)
+- Always account for these rounding errors in distribution mechanisms
+- Transfer any remaining tokens to a designated recipient (usually admin)
+- Verify actual ratios match expected ratios in distribution calculations
+- Use constructor parameters to set contribution requirements rather than hardcoding them
+- Derive distribution ratios from contribution requirements for simplicity
+
+### Code Organization
+
+- Refactor repetitive code into helper functions
+- Use separate functions for package statistics updates
+- Create getter functions that can handle multiple return types
+- Keep core business logic in main functions and move implementation details to helpers
+- Prefer function arguments over storage reads when possible for gas efficiency
+
+### Participation Handling
+
+- Consolidate similar participation logic into internal functions
+- Apply the same validation checks across all participation methods
+- Use consistent error messages for similar validation failures
+- Make contribution requirements configurable through constructor
+- Verify minimum contribution requirements in a consistent way
+
+### Memory Management
+
+- Be aware of storage vs. memory usage for gas optimization
+- Use memory for temporary calculations
+- Store final results in storage only when necessary
+- Pass structs by reference when possible to save gas
+- Keep helper function gas costs in mind when refactoring

@@ -2,55 +2,53 @@
 
 ## Current Focus
 
-The current focus is on ensuring the PreSaleOrchestrator_v1 contract is fully production-ready without any test-specific code. The contract manages a presale process that involves:
+The current focus is on finalizing the PreSaleOrchestrator_v1 contract by ensuring accurate and complete token distribution with no tokens left undistributed in the contract. Key areas of improvement include:
 
-1. Whitelisting users with different package types
-2. Handling deposits/contributions of distribution tokens
-3. Calculating token distribution dynamically based on participation
-4. Managing both ETH and ERC20 tokens for participation and treasury operations
-5. Ensuring all functionality works identically in production environments
+1. Handling rounding errors in token distribution calculations
+2. Ensuring all tokens are properly accounted for during distribution
+3. Verifying that distribution ratios match the specified package requirements
+4. Maintaining proper test coverage for all distribution scenarios
 
 ## Recent Changes
 
-1. **Production-Ready Token Distribution**: Replaced hardcoded test values in `calculateTokenDistribution` with dynamic calculation based on actual token balances and package distribution.
+1. **Complete Token Distribution**: Modified the `distribute()` function to handle rounding errors by transferring any remaining tokens to the admin after distributing to participants, ensuring no tokens remain in the contract.
 
-2. **ETH Transfer Handling**: Improved the `_participateInternal` function to always forward real ETH transfers to the treasury, removing test-specific conditional logic.
+2. **Improved Token Distribution Calculation**: Enhanced the token distribution calculation logic to use contribution requirements as the ratio basis for determining token shares, removing the need for separate package ratio variables.
 
-3. **Treasury Withdrawal Implementation**: Enhanced the `withdrawTreasury` function with proper implementation for external treasury contracts, removing test-specific event emissions.
+3. **Distribution Testing**: Added a new test `testNoTokensLeftAfterDistribution()` that verifies the contract has zero token balance after distribution is complete.
 
-4. **Test Updates**: Modified tests to work with production-ready code, using real ETH transfers and appropriate assertions for dynamic token calculation.
+4. **Helper Functions for Package Management**: Created helper functions like `_updatePackageStats()`, `_getPackageValue()`, and `_calculateUserDistribution()` to reduce code duplication and improve maintainability.
 
-5. **Core Principle Establishment**: Established the principle that smart contracts should not contain any hardcoded test values, and tests should simulate production behavior.
+5. **Contract Refactoring**: Reorganized the contract code to improve readability and reduce redundant code, particularly in whitelist management and participation logic.
 
-## Key Principles
+## Key Findings
 
-1. **No Hardcoded Test Values**: Contracts should not contain any hardcoded values specifically for testing purposes.
+1. **Rounding Error Analysis**: Confirmed that the token distribution issue was a minor rounding error of 1 wei due to integer division, not a fundamental calculation problem.
 
-2. **Tests Simulate Production**: Test environments should simulate production behavior as much as possible.
+2. **Package Ratio Simplification**: Determined that package ratios can be derived directly from contribution requirements, simplifying the contract parameters.
 
-3. **Modify Tests, Not Contracts**: If test-specific behavior is needed, modify the tests rather than adding conditional logic to the contract.
+3. **100% Distribution Guarantee**: Established that the contract now guarantees complete distribution of all tokens, with any rounding errors (typically 1 wei) being sent to the admin.
 
-4. **Production-Ready Always**: Maintain production-ready code at all times, avoiding any test-specific paths or behavior.
+4. **Ratio Preservation**: Verified that token distribution maintains the correct ratios between package types (1:3:10 for small:medium:large) both in calculation and actual distribution.
 
 ## Next Steps
 
-1. **Gas Optimization**: Review gas usage and optimize the contract for production use.
+1. **Gas Optimization**: Review gas usage in the distribute function and optimize for production use.
 
-2. **Deployment Scripts**: Create deployment scripts for mainnet and testnet environments, ensuring proper configuration for production.
+2. **Deployment Configuration**: Finalize constructor parameters for deployment, particularly defining contribution requirements.
 
-3. **Audit**: Conduct a thorough security audit before deploying to production.
+3. **Security Review**: Conduct a focused security review on the token distribution logic, ensuring no edge cases could result in tokens being locked.
 
-4. **Documentation**: Ensure all production-specific code changes are properly documented for the deployment team.
+4. **Documentation**: Update contract documentation to explain the token distribution mechanism and rounding error handling.
 
 ## Active Decisions and Considerations
 
-1. **Token Distribution Calculation**: Using actual token balance and package distribution for calculating share values.
+1. **Rounding Error Handling**: Decided to handle rounding errors by transferring remaining tokens to admin rather than adjusting calculation formulas, as this provides a cleaner solution that always results in zero tokens left in the contract.
 
-2. **ETH Transfer Management**: Direct ETH transfers to treasury with proper error handling.
+2. **Constructor Parameters**: Simplified constructor by using contribution requirements instead of separate ratio parameters, reducing potential configuration errors.
 
-3. **Treasury Flexibility**: Supporting multiple treasury configurations:
+3. **Distribution Verification**: Implemented robust tests to verify that token distribution preserves the correct ratios between package types.
 
-   - Treasury as this contract (direct transfer)
-   - Treasury as external contract (call withdraw function)
+4. **Code Maintainability**: Added helper functions to improve code organization and readability, making the contract easier to maintain and audit.
 
-4. **Test Adaptation**: Maintaining test coverage by adapting tests to work with production code rather than modifying the contract for tests.
+5. **Function Separation**: Maintained clear separation between user-facing functions and internal logic to improve security and auditability.

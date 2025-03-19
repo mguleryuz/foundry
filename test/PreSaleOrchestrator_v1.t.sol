@@ -924,4 +924,88 @@ contract PreSaleOrchestratorTest is Test {
         assertEq(uint256(MEDIUM), 1);
         assertEq(uint256(LARGE), 2);
     }
+
+    function testNoTokensLeftAfterDistribution() public {
+        _setupCompletePresaleWithETH();
+
+        // Have multiple users participate with different amounts
+        vm.startPrank(user1);
+        uint256 maxContributionUser1 = presale.getUserMaxContribution(user1);
+        presale.participate{value: maxContributionUser1}(maxContributionUser1);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        uint256 maxContributionUser2 = presale.getUserMaxContribution(user2);
+        presale.participate{value: maxContributionUser2}(maxContributionUser2);
+        vm.stopPrank();
+
+        vm.startPrank(user3);
+        uint256 maxContributionUser3 = presale.getUserMaxContribution(user3);
+        presale.participate{value: maxContributionUser3}(maxContributionUser3);
+        vm.stopPrank();
+
+        // End presale and distribute
+        presale.endPreSale();
+
+        // Check distribution token balance before distribution
+        uint256 totalBalanceBefore = distributionToken.balanceOf(address(presale));
+        console.log("Total distribution token balance before:", totalBalanceBefore);
+
+        // Get the calculated distribution shares for each package
+        (uint256 smallShare, uint256 mediumShare, uint256 largeShare) = presale.calculateTokenDistribution();
+        console.log("Calculated small share:", smallShare);
+        console.log("Calculated medium share:", mediumShare);
+        console.log("Calculated large share:", largeShare);
+
+        // Calculate total shares
+        uint256 totalShares = smallShare + mediumShare + largeShare;
+        console.log("Sum of calculated shares:", totalShares);
+        console.log("Difference (balance - shares):", totalBalanceBefore - totalShares);
+
+        // Get contribution requirements for ratio verification
+        uint256 smallReq = presale.getContributionRequirement(SMALL);
+        uint256 mediumReq = presale.getContributionRequirement(MEDIUM);
+        uint256 largeReq = presale.getContributionRequirement(LARGE);
+
+        // Log ratios to verify
+        console.log("Small requirement:", smallReq);
+        console.log("Medium requirement:", mediumReq);
+        console.log("Large requirement:", largeReq);
+        console.log("Share ratio - medium/small:", mediumShare / smallShare);
+        console.log("Share ratio - large/small:", largeShare / smallShare);
+        console.log("Expected ratio - medium/small:", mediumReq / smallReq);
+        console.log("Expected ratio - large/small:", largeReq / smallReq);
+
+        // Distribute tokens
+        presale.distribute();
+
+        // Verify that no tokens are left in the contract
+        uint256 remainingBalance = distributionToken.balanceOf(address(presale));
+        console.log("Remaining balance after distribution:", remainingBalance);
+
+        assertEq(remainingBalance, 0, "No tokens should remain after distribution");
+
+        // Verify that the distribution is marked as complete
+        assertTrue(presale.isDistributionComplete(), "Distribution should be marked as complete");
+
+        // Verify that users received tokens
+        uint256 user1Tokens = distributionToken.balanceOf(user1);
+        uint256 user2Tokens = distributionToken.balanceOf(user2);
+        uint256 user3Tokens = distributionToken.balanceOf(user3);
+        uint256 adminTokens = distributionToken.balanceOf(admin);
+
+        console.log("User1 (small) received:", user1Tokens);
+        console.log("User2 (medium) received:", user2Tokens);
+        console.log("User3 (large) received:", user3Tokens);
+        console.log("Admin received:", adminTokens);
+        console.log("Total distributed:", user1Tokens + user2Tokens + user3Tokens + adminTokens);
+
+        assertTrue(user1Tokens > 0, "User1 should have received tokens");
+        assertTrue(user2Tokens > 0, "User2 should have received tokens");
+        assertTrue(user3Tokens > 0, "User3 should have received tokens");
+
+        // Check ratios of received tokens
+        console.log("Received token ratio - medium/small:", user2Tokens / user1Tokens);
+        console.log("Received token ratio - large/small:", user3Tokens / user1Tokens);
+    }
 }

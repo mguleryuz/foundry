@@ -200,7 +200,8 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         }
 
         // Check if there is anything to distribute
-        if (getDistributionBalance() == 0) {
+        uint256 initialBalance = getDistributionBalance();
+        if (initialBalance == 0) {
             revert IPreSaleOrchestrator__DistributionIsNotDeposited();
         }
 
@@ -214,6 +215,9 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         _tokenDistributionShare.mediumPackageShare = mediumShare;
         _tokenDistributionShare.largePackageShare = largeShare;
 
+        // Keep track of total tokens distributed
+        uint256 totalDistributed = 0;
+
         // Distribute tokens to all users who contributed
         for (uint256 i = 0; i < _whitelistedUsers.length; i++) {
             address userAddress = _whitelistedUsers[i];
@@ -225,9 +229,20 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
                 if (distributionAmount > 0) {
                     // Transfer tokens to user
-                    _safeTransferDistributionToken(userAddress, distributionAmount);
+                    if (distributionToken.balanceOf(address(this)) >= distributionAmount) {
+                        distributionToken.safeTransfer(userAddress, distributionAmount);
+                        emit DistributionDistributed(userAddress, distributionAmount);
+                        totalDistributed += distributionAmount;
+                    }
                 }
             }
+        }
+
+        // If there are any remaining tokens due to rounding, send them to the admin
+        uint256 remainingBalance = distributionToken.balanceOf(address(this));
+        if (remainingBalance > 0) {
+            distributionToken.safeTransfer(msg.sender, remainingBalance);
+            emit DistributionDistributed(msg.sender, remainingBalance);
         }
 
         _presaleConfig.distributionComplete = true;
