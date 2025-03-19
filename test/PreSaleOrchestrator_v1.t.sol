@@ -182,7 +182,7 @@ contract PreSaleOrchestratorTest is Test {
         assertEq(presale.getDistributionToken(), address(distributionToken));
     }
 
-    function testInitialContributionRequirements() public {
+    function testInitialContributionRequirements() public view {
         // Test that contribution requirements were set correctly during construction
         IPreSaleOrchestrator_v1.ContributionRequirement memory reqs = presale.getContributionRequirements();
         assertEq(reqs.smallPackageRequirement, PARTICIPATION_AMOUNT_SMALL);
@@ -909,7 +909,7 @@ contract PreSaleOrchestratorTest is Test {
     }
 
     // Helper function to verify enum values
-    function testEnumValues() public {
+    function testEnumValues() public pure {
         // Enum values should match these integer values
         assertEq(uint256(INACTIVE), 0);
         assertEq(uint256(ACTIVE), 1);
