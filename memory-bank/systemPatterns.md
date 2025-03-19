@@ -58,6 +58,21 @@ The contract uses dynamic calculations for:
 - **Token Distribution**: Proportional to user contribution and package type
 - **Minimum Requirements**: 50% minimum contribution enforcement
 
+### Treasury Management
+
+The contract implements a dual treasury management approach:
+
+- **ETH Treasury**: For native ETH contributions
+
+  - ETH is immediately forwarded to the treasury address
+  - Admin can trigger withdrawals from treasury via events (test-only)
+  - In production, direct treasury management would require additional implementation
+
+- **ERC20 Treasury**: For token-based contributions
+  - ERC20 tokens are transferred directly to treasury upon contribution
+  - Admin can trigger withdrawals via transferFrom (requires treasury approval)
+  - Proper approval flow is enforced for security
+
 ## Component Relationships
 
 ```
@@ -114,16 +129,23 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
   - Multiple participation methods:
     - Direct ETH transfers via receive() function
     - Explicit participate() function for ETH payments
-    - participateInPresale() function for backward compatibility
     - participateWithERC20() for token payments
   - Shared internal participation logic with \_participateInternal
   - Enforces minimum and maximum contribution limits
 
 - **Distribution Logic**:
+
   - Proportional distribution based on contribution
   - Fixed token shares for testing with 1:3:10 ratio
   - Safety checks for sufficient token balance
   - Automatic transfer to participants
+
+- **Treasury Management**:
+  - ETH contributions are forwarded to treasury address in real-time
+  - ERC20 contributions are transferred directly to treasury
+  - Admin withdrawal controls for both ETH and ERC20
+  - Event-based withdrawal system for ETH in test environments
+  - Safe ERC20 transfers using OpenZeppelin's SafeERC20
 
 ### ERC20Issuance_v1
 
@@ -139,6 +161,7 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
 - **Multi-network Support**: Contracts designed to work on multiple EVM chains
 - **Versioning Strategy**: Contracts versioned for future upgrades
 - **Error Handling**: Custom errors with descriptive names for easier debugging
+- **Treasury Design**: Simplified approach for testing with clear separation of concerns
 
 ## Security Considerations
 
@@ -147,3 +170,4 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
 - **State Guards**: Preventing invalid state transitions
 - **Reentrancy Protection**: Following checks-effects-interactions pattern
 - **Pause Functionality**: Ability to pause operations in emergency
+- **Treasury Protection**: Separation of treasury from contract balance
