@@ -6,7 +6,7 @@ import {IERC20} from "@oz/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@oz/token/ERC20/utils/SafeERC20.sol";
 
 // Internal Imports
-import {IPreSaleOrchestrator_v1} from "./interfaces/IPreSaleOrchestrator_v1.sol";
+import {IPreSaleOrchestrator_v1} from "src/interfaces/IPreSaleOrchestrator_v1.sol";
 
 /**
  * @title PreSaleOrchestrator_v1
