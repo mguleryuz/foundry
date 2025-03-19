@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {PreSaleOrchestrator_v1} from "../src/PreSaleOrchestrator_v1.sol";
-import {IPreSaleOrchestrator_v1} from "../src/interfaces/IPreSaleOrchestrator_v1.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
+import {PreSaleOrchestrator_v1} from "src/PreSaleOrchestrator_v1.sol";
+import {IPreSaleOrchestrator_v1} from "src/interfaces/IPreSaleOrchestrator_v1.sol";
+import {MockERC20} from "test/mocks/MockERC20.sol";
 
 contract StartPresaleTest is Test {
     PreSaleOrchestrator_v1 public presale;
