@@ -95,13 +95,13 @@ interface IPreSaleOrchestrator_v1 {
 
     error IPreSaleOrchestrator__PresaleIsNotEnded();
 
+    error IPreSaleOrchestrator__PresaleHasEnded();
+
     error IPreSaleOrchestrator__NotDistributionToken();
 
     error IPreSaleOrchestrator__MinimumContributionNotMet();
 
     error IPreSaleOrchestrator__NoWhitelistedUsers();
-
-    error IPreSaleOrchestrator__CannotChangeAfterPresaleStarted();
 
     //--------------------------------------------------------------------------
     // Enums

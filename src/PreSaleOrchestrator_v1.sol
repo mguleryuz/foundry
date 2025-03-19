@@ -182,11 +182,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function setDistributionToken(address _token) external override onlyAdmin {
-        // Cannot change distribution token after presale has started
-        if (_presaleConfig.preSaleStatus != ProcessStatus.Inactive) {
-            revert IPreSaleOrchestrator__CannotChangeAfterPresaleStarted();
-        }
+    function setDistributionToken(address _token) external override onlyAdmin presaleNotStarted {
         _presaleConfig.distributionToken = _token;
         emit DistributionTokenSet(_token);
     }
@@ -255,11 +251,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
      * @inheritdoc IPreSaleOrchestrator_v1
      */
     function participate(uint256 _amount) external payable override onlyWhitelisted presaleActive {
-        // Make an additional explicit check for whitelisted status
-        if (_users[msg.sender].status != UserStatus.Approved) {
-            revert IPreSaleOrchestrator__CallerIsNotWhitelisted();
-        }
-
         // Only accept ETH contributions if payment currency is ETH
         if (_presaleConfig.paymentCurrency != address(0)) {
             // If payment currency is not ETH, reject this call
@@ -362,7 +353,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
      */
     function withdrawDistribution(uint256 _amount) external override onlyAdmin distributionTokenSet {
         if (_presaleConfig.distributionComplete) {
-            revert IPreSaleOrchestrator__DistributionIsNotDeposited();
+            revert IPreSaleOrchestrator__PresaleHasEnded();
         }
 
         IERC20 distributionToken = IERC20(_presaleConfig.distributionToken);

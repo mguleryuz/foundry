@@ -705,7 +705,7 @@ contract PreSaleOrchestratorTest is Test {
         presale.distribute();
 
         // Attempt withdrawal after distribution should fail
-        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__DistributionIsNotDeposited.selector);
+        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__PresaleHasEnded.selector);
         presale.withdrawDistribution(1);
     }
 
@@ -904,7 +904,7 @@ contract PreSaleOrchestratorTest is Test {
         MockERC20 newToken = new MockERC20("New Token", "NEW", 18);
 
         // Try to change distribution token after presale has started
-        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__CannotChangeAfterPresaleStarted.selector);
+        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__PresaleAlreadyStarted.selector);
         presale.setDistributionToken(address(newToken));
     }
 
