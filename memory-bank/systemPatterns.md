@@ -1,103 +1,148 @@
-# System Patterns
+# System Architecture and Patterns
 
-## Architecture Overview
+## Overall Architecture
 
-The project follows a modular smart contract architecture with clear separation of concerns between token issuance and token sale orchestration. The architecture is designed to be secure, extensible, and compatible with established Ethereum standards.
+This project uses a modular smart contract architecture with clear separation of concerns:
+
+1. **ERC20Issuance_v1**: Handles token creation and management
+2. **PreSaleOrchestrator_v1**: Manages the presale process, whitelist, and token distribution
+
+Each contract has a dedicated interface that defines its public API, promoting clean contract interactions and easier testing.
 
 ## Design Patterns
 
-### Access Control Patterns
+### Interface-Implementation Separation
 
-1. **Ownership Pattern**: Using OpenZeppelin's `Ownable` for administrative control
-2. **Whitelist Pattern**: Custom whitelist implementation for minting permissions and presale participation
-3. **Modifiers**: Custom modifiers like `onlyMinter` and `onlyAdmin` for function access control
-4. **Role-Based Access**: Different permissions for admins, whitelisted users, and regular users
+All contracts follow a strict interface-implementation pattern:
 
-### Token Patterns
+- Interface files (e.g., `IPreSaleOrchestrator_v1.sol`) define the contract's public API
+- Implementation files (e.g., `PreSaleOrchestrator_v1.sol`) provide the actual functionality
 
-1. **ERC20 Standard**: Implementation of the ERC20 token standard for compatibility
-2. **Capped Supply**: Using `ERC20Capped` to limit maximum token supply
-3. **Custom Decimals**: Configurable token decimals for flexibility
+This separation allows for:
 
-### Presale Patterns
+- Clear contract boundaries
+- Easier upgrades in the future
+- Simplified testing through mock implementations
 
-1. **Package-Based Allocation**: Different package types (Small, Medium, Large) with varying allocations
-2. **Dynamic Price Calculation**: Contribution requirements calculated based on total distribution amount and whitelist data
-3. **Dynamic Token Distribution**: Token shares calculated proportionally to package types
-4. **Multi-Currency Support**: Flexible payment options (ETH or ERC20 tokens)
-5. **Process State Management**: Clear states for whitelist and presale periods (Inactive, Active, Paused, Ended)
+### Access Control
 
-### Version Control Pattern
+Multiple levels of access control are implemented:
 
-1. **Versioned Contracts**: Contracts follow a versioning scheme (e.g., `ERC20Issuance_v1`) for clear upgrade paths
-2. **Interface Separation**: Interfaces (e.g., `IERC20Issuance_v1`, `IPreSaleOrchestrator_v1`) defined separately from implementations
+- **Admin Control**: Admin-only functions for critical operations
+- **Whitelist Control**: User validation for participation
+- **Status Control**: Functions that validate the current process status
+
+### State Machine
+
+The PreSaleOrchestrator contract implements a state machine pattern:
+
+- **Process Statuses**: Inactive, Active, Paused, Ended
+- **Phase Transitions**: Whitelist → Presale → Distribution
+- **Status Checks**: Guard functions against invalid state transitions
+
+### Data Structures
+
+Key data structures include:
+
+- **User**: Stores user status, package type, and contribution amount
+- **PresaleConfig**: Manages the status of the whitelist and presale periods
+- **PresaleStats**: Tracks total packages and participation metrics
+- **ContributionRequirement**: Defines how much users need to contribute
+- **TokenDistributionShare**: Defines how tokens are distributed proportionally
+
+### Dynamic Calculation
+
+The contract uses dynamic calculations for:
+
+- **Package Pricing**: Based on distribution token amount and package types
+- **Token Distribution**: Proportional to user contribution and package type
+- **Minimum Requirements**: 50% minimum contribution enforcement
 
 ## Component Relationships
 
 ```
-                      +----------------+
-                      |                |
-                      |    Ownable     |
-                      |                |
-                      +-------+--------+
-                              |
-                              |
-+----------------+    +-------+--------+    +----------------+
-|                |    |                |    |                |
-| IERC20Issuance +---->  ERC20Issuance |    |  ERC20Capped  |
-|                |    |                |    |                |
-+----------------+    +-------+--------+    +----------------+
-                              |
-                              |
-+------------------------+    |
-|                        |    |
-| IPreSaleOrchestrator   +----+
-|                        |
-+------------------------+
-         |
-         |
-+------------------------+
-|                        |
-| PreSaleOrchestrator    |
-|                        |
-+------------------------+
+┌───────────────────┐       ┌─────────────────────────┐
+│                   │       │                         │
+│  ERC20Issuance_v1 │◄──────┤  PreSaleOrchestrator_v1 │
+│                   │       │                         │
+└───────────────────┘       └─────────────────────────┘
+        ▲                              ▲
+        │                              │
+        │                              │
+┌───────────────────┐       ┌─────────────────────────┐
+│                   │       │                         │
+│  IErc20Issuance_v1│       │IPreSaleOrchestrator_v1  │
+│                   │       │                         │
+└───────────────────┘       └─────────────────────────┘
 ```
+
+The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract (or any ERC20 token) for distribution token management.
+
+## Implementation Details
+
+### PreSaleOrchestrator_v1
+
+- **Admin Management**:
+
+  - Multiple admins can be added or removed
+  - Protection against self-removal
+  - Only admins can configure critical parameters
+
+- **Whitelist Management**:
+
+  - Individual and batch user whitelisting
+  - Support for different package types
+  - Ability to revoke or reject users
+  - Separate mechanisms for tracking user status and statistics
+
+- **Statistics Management**:
+
+  - Direct admin control over presale statistics
+  - Specialized updateStatsDirectly function for admin control
+  - Clear separation of user status from statistics tracking
+
+- **Presale Process**:
+
+  - Strict phase control (whitelist → presale → distribution)
+  - Pause/resume functionality for each phase
+  - Dynamic calculation of contribution requirements
+
+- **Participation Handling**:
+
+  - Support for both ETH and ERC20 payments
+  - Multiple participation methods:
+    - Direct ETH transfers via receive() function
+    - Explicit participate() function for ETH payments
+    - participateInPresale() function for backward compatibility
+    - participateWithERC20() for token payments
+  - Shared internal participation logic with \_participateInternal
+  - Enforces minimum and maximum contribution limits
+
+- **Distribution Logic**:
+  - Proportional distribution based on contribution
+  - Fixed token shares for testing with 1:3:10 ratio
+  - Safety checks for sufficient token balance
+  - Automatic transfer to participants
+
+### ERC20Issuance_v1
+
+- **Token Management**:
+  - Standard ERC20 functionality
+  - Capped supply to prevent inflation
+  - Admin-controlled minting and burning
 
 ## Key Technical Decisions
 
-1. **Foundry as Development Environment**:
-
-   - Faster compilation and testing
-   - Advanced testing capabilities with fuzzing
-   - Rust-based performance benefits
-
-2. **OpenZeppelin Integration**:
-
-   - Leveraging battle-tested contract implementations
-   - Follows well-established security patterns
-   - Reduced need for custom security implementations
-
-3. **Explicit Interface Definition**:
-
-   - Clear contract interfaces with detailed function signatures
-   - Well-documented function signatures and error handling
-   - Type-safe interactions between contracts
-
-4. **Dynamic Calculations for Presale**:
-
-   - Token distribution shares calculated dynamically based on package types
-   - Contribution requirements calculated based on total distribution and whitelist data
-   - No hardcoded values for pricing or allocations
-
-5. **Multi-network Support**:
-   - Configuration for multiple test networks
-   - Consistent deployment across different environments
+- **Use of OpenZeppelin**: Leveraging battle-tested contracts for standard functionality
+- **Gas Optimization**: Careful considerations for batch operations and storage
+- **Multi-network Support**: Contracts designed to work on multiple EVM chains
+- **Versioning Strategy**: Contracts versioned for future upgrades
+- **Error Handling**: Custom errors with descriptive names for easier debugging
 
 ## Security Considerations
 
-1. **Access Control**: Strict validation of caller permissions for sensitive operations
-2. **Supply Management**: Enforced supply caps to prevent inflation attacks
-3. **Error Handling**: Custom errors for better debugging and gas efficiency
-4. **State Validation**: Checks for valid state transitions in presale process
-5. **Dynamic Calculation Protection**: Safeguards against calculation errors or exploitation
-6. **Upgrade Strategy**: Versioned contracts facilitate future upgrades if needed
+- **Access Control**: Strict control over admin functions
+- **Input Validation**: Thorough checks on all user inputs
+- **State Guards**: Preventing invalid state transitions
+- **Reentrancy Protection**: Following checks-effects-interactions pattern
+- **Pause Functionality**: Ability to pause operations in emergency

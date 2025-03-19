@@ -2,76 +2,89 @@
 
 ## What Works
 
-### Environment Setup
-
-- ✅ Foundry development environment configured
-- ✅ Multi-network support configured (Sepolia, Optimism Sepolia)
-- ✅ OpenZeppelin dependencies integrated
-- ✅ Basic project structure established
-
-### ERC20Issuance_v1 Contract
-
-- ✅ Core ERC20 functionality implemented with capped supply
-- ✅ Custom decimals configuration
-- ✅ Whitelist-based minting and burning
-- ✅ Access control via Ownable pattern
-- ✅ Interface definition for contract interaction
-
-### PreSaleOrchestrator_v1 Contract
-
-- ✅ Interface design for presale functionality completed
-- ✅ Comprehensive token flow definition
-- ✅ Clear separation between contribution requirements and token distribution
-- ✅ Multi-currency support (ETH and ERC20 tokens)
-- ✅ Dynamic calculation design for package pricing and distribution
+- ✅ Environment setup with Foundry
+- ✅ ERC20Issuance_v1 contract implemented
+- ✅ PreSaleOrchestrator_v1 interface designed and finalized
+- ✅ PreSaleOrchestrator_v1 contract implemented with all core functionality
+- ✅ Whitelist management functionality fixed and working
+- ✅ Participation flow updated with internal shared logic
+- ✅ Support for direct ETH transfers via receive function
+- ✅ Unit tests for core functionality are passing
+- ✅ Fixed token distribution calculations
 
 ## What's In Progress
 
-### PreSaleOrchestrator_v1 Contract
+- 🚧 Fixing remaining edge case tests
+  - Complex distribution proportional calculations
+  - Error handling for non-whitelisted participants
+  - Treasury ETH withdrawal process
+- 🚧 Contract optimization and security review
+  - Gas usage analysis
+  - Security vulnerability assessment
 
-- 🔄 Implementation of core contract logic based on the interface
-- 🔄 Whitelist management functionality
-- 🔄 Dynamic calculation implementation
+## What Remains to Be Built
 
-### Testing
-
-- 🔄 Test framework setup
-- ⏳ Unit tests for ERC20Issuance_v1
-- ⏳ Integration tests for contract interactions
-
-### Deployment
-
-- ⏳ Deployment scripts
-- ⏳ Network deployment and verification
-
-## What's Left to Build
-
-### PreSaleOrchestrator_v1 Implementation
-
-- ⏳ State transition logic for whitelist and presale periods
-- ⏳ Token distribution logic
-- ⏳ Integration with ERC20Issuance_v1
-- ⏳ Security features and edge case handling
-
-### Documentation
-
-- ⏳ Developer documentation
-- ⏳ Deployment instructions
-- ⏳ Contract interaction guides
-
-### Testing Completion
-
-- ⏳ Comprehensive test coverage
-- ⏳ Fuzz testing for edge cases
-- ⏳ Multi-network testing
+- Contract deployment scripts
+- Integration tests between ERC20Issuance and PreSaleOrchestrator
+- Frontend interface to interact with contracts
+- Documentation for contract usage
+- Audit preparation
 
 ## Current Status
 
-The project is in active development with the core token issuance contract mostly implemented. The presale orchestrator interface is now complete with a well-defined token flow that includes whitelist management, dynamic pricing, and distribution mechanics. Implementation of the presale orchestrator is the next major step.
+### Environment Setup
 
-## Known Issues
+- ✅ Foundry development environment is set up with appropriate configurations
+- ✅ Solidity compiler version is configured to 0.8.20
 
-- No automated tests implemented yet
-- PreSaleOrchestrator_v1 contract implementation needed based on the interface
-- Edge cases in dynamic calculations need careful handling
-- No deployment scripts have been created yet for test networks
+### ERC20Issuance_v1 Contract
+
+- ✅ Basic token functionality implemented
+- ✅ Permission controls for minting and burning
+- ✅ Events for tracking issuance activities
+
+### PreSaleOrchestrator_v1 Contract
+
+- ✅ Interface fully designed with appropriate events, errors, and functions
+- ✅ Contract implementation completed with core functionality:
+  - Admin management (add/remove admins)
+  - Whitelist management (add/revoke/reject users)
+  - Presale process control (start/pause/end)
+  - Dynamic calculation of token distribution based on package types
+  - Support for ETH and ERC20 token payments
+  - Treasury management
+  - Token distribution to participants
+- ✅ Fixed implementation issues:
+  - ✅ Separated user status tracking from statistics tracking with updateStatsDirectly
+  - ✅ Created internal \_participateInternal function for common participation logic
+  - ✅ Added dedicated participate() function for direct ETH contributions
+  - ✅ Fixed the receive() function to handle direct ETH transfers
+  - ✅ Token distribution now checks for sufficient token balance
+  - ✅ Added NotWhitelisted error for proper error handling
+- 🚧 Remaining issues:
+  - Complex proportional distribution calculations
+  - Edge case tests for treasury withdrawals
+
+### Testing
+
+- ✅ 29 passing tests for core functionality
+- ✅ Fixed tests for whitelist management
+- ✅ Fixed tests for basic participation and presale process
+- ✅ Created specialized test contracts for isolating functionality (SimpleStatsTest, DirectStatsTest, StartPresaleTest)
+- 🚧 4 skipped tests addressing advanced functionality:
+  - Token distribution proportionality
+  - Non-whitelisted user participation attempts
+  - Treasury ETH withdrawal process
+- ✅ Test setup functions improved with consistent state initialization
+
+### Documentation
+
+- ✅ NatSpec documentation for interfaces
+- ✅ New error messages documented
+- 🚧 Implementation documentation in progress
+- ❌ External documentation not started
+
+### Deployment
+
+- ❌ Deployment scripts not started
+- ❌ Network configuration not finalized

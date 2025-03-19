@@ -82,6 +82,8 @@ interface IPreSaleOrchestrator_v1 {
 
     error IPreSaleOrchestrator__CallerIsNotWhitelisted();
 
+    error IPreSaleOrchestrator__NotWhitelisted();
+
     error IPreSaleOrchestrator__WhitelistPeriodNotActive();
 
     error IPreSaleOrchestrator__WhitelistPeriodNotEnded();
@@ -105,6 +107,8 @@ interface IPreSaleOrchestrator_v1 {
     error IPreSaleOrchestrator__NotDistributionToken();
 
     error IPreSaleOrchestrator__MinimumContributionNotMet();
+
+    error IPreSaleOrchestrator__NoWhitelistedUsers();
 
     //--------------------------------------------------------------------------
     // Enums
@@ -201,6 +205,10 @@ interface IPreSaleOrchestrator_v1 {
     /// @dev Users can only deposit up to their assigned package amount during active presale.
     /// @dev If payment currency is ETH, amount should be sent with the transaction.
     function participateInPresale(uint256 _amount) external payable;
+
+    /// @notice Allows a user to participate by sending ETH directly.
+    /// @dev Only works for whitelisted users and ETH payments.
+    function participate() external payable;
 
     /// @notice Allows a whitelisted user to participate with ERC20 tokens.
     /// @dev Only used when payment currency is an ERC20 token. User must approve first.

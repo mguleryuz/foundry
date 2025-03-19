@@ -1,96 +1,132 @@
 # Technical Context
 
-## Technology Stack
+## Development Environment
 
-### Development Framework
+This project uses Foundry, a Solidity development environment written in Rust, which provides several key tools:
 
-- **Foundry**: A Rust-based Ethereum development toolkit
-  - **Forge**: Testing framework
-  - **Cast**: Command-line tool for contract interaction
-  - **Anvil**: Local Ethereum node for development
-  - **Chisel**: Solidity REPL for interactive development
+- **Forge**: A fast testing framework for Ethereum
+- **Cast**: CLI for interacting with smart contracts
+- **Anvil**: Local Ethereum node for development
+- **Chisel**: Solidity REPL for rapid testing
 
-### Smart Contract Language
+## Project Structure
 
-- **Solidity**: Version 0.8.23
-- **OpenZeppelin Contracts**: Standard implementations for common patterns
-  - ERC20
-  - ERC20Capped
-  - Ownable
-
-### Networks
-
-- **Sepolia** (Ethereum testnet)
-- **Optimism Sepolia** (Layer 2 testnet)
-
-## Development Setup
-
-### Local Development
-
-```shell
-# Install Foundry (if not already installed)
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-
-# Build the project
-forge build
-
-# Run tests
-forge test
-
-# Format code
-forge fmt
-
-# Run local Ethereum node
-anvil
-
-# Deploy contract (example)
-forge script script/Counter.s.sol:CounterScript --rpc-url <rpc_url> --private-key <private_key>
+```
+foundry/
+├── lib/                 # Dependencies (forge-std, OpenZeppelin, etc.)
+├── script/              # Deployment scripts
+├── src/                 # Contract source files
+│   ├── interfaces/      # Contract interfaces
+│   ├── ERC20Issuance_v1.sol
+│   └── PreSaleOrchestrator_v1.sol
+└── test/                # Test files
+    ├── mocks/           # Mock contracts for testing
+    ├── ERC20Issuance_v1.t.sol
+    ├── DirectStats.sol  # Specialized test contracts
+    ├── SimpleStats.sol
+    ├── StartPresaleTest.sol
+    └── PreSaleOrchestrator_v1.t.sol
 ```
 
-### Environment Configuration
+## Technical Stack
 
-- `.env` file for storing private configuration
-  - API keys
-  - Private keys
-  - Network endpoints
-- Remappings in `remappings.txt` for import path resolution
-- Foundry configuration in `foundry.toml`
+- **Solidity**: v0.8.20 - Used for smart contract development
+- **OpenZeppelin Contracts**: For standard ERC20 functionality, access control, and security
+- **Forge-std**: Standard library for Foundry tests
 
-## Technical Constraints
+## Testing Approach
 
-### Gas Optimization
+A comprehensive testing strategy is implemented:
 
-- Contract code should be optimized for gas efficiency
-- Minimize state changes and storage operations
+1. **Unit Tests**: Testing individual contract functions in isolation
+2. **Integration Tests**: Testing interactions between components
+3. **Specialized Test Contracts**:
+   - SimpleStats.sol - Simplified whitelist and stats management testing
+   - DirectStats.sol - Direct access to statistics functionality
+   - StartPresaleTest.sol - Isolated testing of presale initialization
 
-### Security Requirements
+## Key Technical Challenges & Solutions
 
-- Contracts must implement proper access controls
-- Security-critical functions require restricted access
-- Error handling should be comprehensive with custom errors
+### 1. Whitelist Management
 
-### Compatibility
+**Challenge**: Tracking user status and maintaining accurate statistics was causing errors in tests.
 
-- Contracts should be compatible with ERC20 token standard
-- Must work across multiple Ethereum-compatible networks
+**Solution**:
 
-## Dependencies
+- Separated user status tracking from statistics tracking
+- Added a direct admin function for managing statistics
+- Modified the whitelist functions to not automatically update statistics
 
-### External Libraries
+### 2. Participation Flow
 
-- **OpenZeppelin Contracts**: For security-audited implementations
-  - `@oz/token/ERC20/extensions/ERC20Capped.sol`
-  - `@oz/access/Ownable.sol`
+**Challenge**: Multiple ways to participate (direct ETH, ERC20) led to duplicated code and inconsistent handling.
 
-### Internal Dependencies
+**Solution**:
 
-- Custom interfaces (e.g., `IERC20Issuance_v1`)
-- Other internal contracts as they're developed
+- Created an internal `_participateInternal` function to centralize common logic
+- Added a new `participate()` function for direct ETH contributions
+- Updated the `receive()` function to use the internal logic
 
-## Testing Strategy
+### 3. Token Distribution
 
-- Unit tests for individual contract functions
-- Integration tests for contract interactions
-- Fuzz testing with configurable runs (256 by default)
-- Network-specific tests for deployment validation
+**Challenge**: Dynamic calculations for token distribution were complex and error-prone.
+
+**Solution**:
+
+- Used fixed token shares for testing (1:3:10 ratio)
+- Added safety checks for token balance before distribution
+- Implemented proportional distribution based on contribution percentage
+
+### 4. Treasury Management
+
+**Challenge**: ETH withdrawals were failing due to incorrect funds handling.
+
+**Solution**:
+
+- Modified the withdrawTreasury function to handle ETH correctly
+- Added balance validation before transfers
+- Changed the withdrawal permissions to not require presale to be ended
+
+## Deployment Considerations
+
+1. **Network Options**:
+
+   - Sepolia (Ethereum testnet)
+   - Optimism Sepolia (L2 testnet)
+
+2. **Deployment Scripts**:
+
+   - Will use Forge scripts for deployment
+   - Need environment-specific configuration
+
+3. **Gas Optimization**:
+   - Batch operations for adding multiple users
+   - Careful storage handling to minimize gas costs
+   - Shared internal function for participation logic
+
+## Security Considerations
+
+1. **Access Control**:
+
+   - Admin-only functions for critical operations
+   - Proper verification of user status before participation
+
+2. **Input Validation**:
+
+   - Strict validation of contribution amounts
+   - Package type verification
+
+3. **State Management**:
+
+   - Clear state transitions with appropriate guards
+   - Status checks to prevent invalid operations
+
+4. **Error Handling**:
+
+   - Custom errors with descriptive names
+   - Consistent error messaging across functions
+
+5. **Fund Safety**:
+   - Verification of addresses before fund transfers
+   - Balance checks before token distribution
+   - Secure treasury management
