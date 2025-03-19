@@ -1,90 +1,70 @@
-# Progress
+# Project Progress
 
 ## What Works
 
-- ✅ Environment setup with Foundry
-- ✅ ERC20Issuance_v1 contract implemented
-- ✅ PreSaleOrchestrator_v1 interface designed and finalized
-- ✅ PreSaleOrchestrator_v1 contract implemented with all core functionality
-- ✅ Whitelist management functionality fixed and working
-- ✅ Participation flow updated with internal shared logic
-- ✅ Support for direct ETH transfers via receive function
-- ✅ Unit tests for core functionality are passing
-- ✅ Fixed token distribution calculations
+1. **Environment Setup**
 
-## What's In Progress
+   - Foundry environment is fully configured and operational
+   - Dependencies (OpenZeppelin, forge-std) are correctly installed
 
-- 🚧 Fixing remaining edge case tests
-  - Complex distribution proportional calculations
-  - Error handling for non-whitelisted participants
-  - Treasury ETH withdrawal process
-- 🚧 Contract optimization and security review
-  - Gas usage analysis
-  - Security vulnerability assessment
+2. **Contract Implementation**
 
-## What Remains to Be Built
+   - PreSaleOrchestrator_v1 contract is fully implemented with core functionality:
+     - Admin management ✅
+     - Whitelist management with automatic statistics tracking ✅
+     - Package type support ✅
+     - Presale process control ✅
+     - Participation handling ✅
+     - Distribution logic ✅
+   - ERC20Issuance_v1 contract is fully implemented
 
-- Contract deployment scripts
-- Integration tests between ERC20Issuance and PreSaleOrchestrator
-- Frontend interface to interact with contracts
-- Documentation for contract usage
-- Audit preparation
+3. **Testing**
+   - Core functionality tests are passing (29 passing tests)
+   - Test coverage for key functions:
+     - Admin functions ✅
+     - Whitelist management ✅
+     - Statistics tracking ✅
+     - Participation ✅
+     - Basic distribution ✅
+   - Special test cases:
+     - Direct stats tests ✅
+     - Simple stats tests ✅
+     - Presale start tests ✅
 
-## Current Status
+## What Needs Work
 
-### Environment Setup
+1. **Additional Tests**
 
-- ✅ Foundry development environment is set up with appropriate configurations
-- ✅ Solidity compiler version is configured to 0.8.20
+   - Some tests are still in progress (4 skipped tests)
+   - Need additional testing for edge cases
+   - Treasury withdrawal tests to be completed
+   - Complete distribution tests
 
-### ERC20Issuance_v1 Contract
+2. **Deployment Scripts**
 
-- ✅ Basic token functionality implemented
-- ✅ Permission controls for minting and burning
-- ✅ Events for tracking issuance activities
+   - Need to create deployment scripts for:
+     - Sepolia testnet
+     - Optimism Sepolia testnet
+     - Mainnet (future)
 
-### PreSaleOrchestrator_v1 Contract
+3. **Documentation**
 
-- ✅ Interface fully designed with appropriate events, errors, and functions
-- ✅ Contract implementation completed with core functionality:
-  - Admin management (add/remove admins)
-  - Whitelist management (add/revoke/reject users)
-  - Presale process control (start/pause/end)
-  - Dynamic calculation of token distribution based on package types
-  - Support for ETH and ERC20 token payments
-  - Treasury management
-  - Token distribution to participants
-- ✅ Fixed implementation issues:
-  - ✅ Separated user status tracking from statistics tracking with updateStatsDirectly
-  - ✅ Created internal \_participateInternal function for common participation logic
-  - ✅ Added dedicated participate() function for direct ETH contributions
-  - ✅ Fixed the receive() function to handle direct ETH transfers
-  - ✅ Token distribution now checks for sufficient token balance
-  - ✅ Added NotWhitelisted error for proper error handling
-- 🚧 Remaining issues:
-  - Complex proportional distribution calculations
-  - Edge case tests for treasury withdrawals
+   - Contract documentation needs updating to reflect automatic stats tracking
+   - Add deployment instructions
 
-### Testing
+4. **Gas Optimization**
+   - Review gas usage and optimize further
+   - Consider additional batch operations
 
-- ✅ 29 passing tests for core functionality
-- ✅ Fixed tests for whitelist management
-- ✅ Fixed tests for basic participation and presale process
-- ✅ Created specialized test contracts for isolating functionality (SimpleStatsTest, DirectStatsTest, StartPresaleTest)
-- 🚧 4 skipped tests addressing advanced functionality:
-  - Token distribution proportionality
-  - Non-whitelisted user participation attempts
-  - Treasury ETH withdrawal process
-- ✅ Test setup functions improved with consistent state initialization
+## Known Issues
 
-### Documentation
+- None currently with the core implementation. Recent fixes addressed:
+  - Statistics tracking for new users and package changes
+  - Removal of redundant updateStatsDirectly function
 
-- ✅ NatSpec documentation for interfaces
-- ✅ New error messages documented
-- 🚧 Implementation documentation in progress
-- ❌ External documentation not started
+## Next Milestone
 
-### Deployment
-
-- ❌ Deployment scripts not started
-- ❌ Network configuration not finalized
+1. Complete remaining tests
+2. Create deployment scripts
+3. Generate comprehensive documentation
+4. Perform security review

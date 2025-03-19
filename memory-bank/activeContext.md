@@ -2,90 +2,48 @@
 
 ## Current Focus
 
-We are currently focused on finalizing the PreSaleOrchestrator_v1 smart contract and ensuring its test suite passes. We've made significant progress fixing critical issues with the contract's implementation, particularly around whitelist management, token distribution, and participation functionality.
+The current focus is on improving and refining the PreSaleOrchestrator_v1 contract. The contract manages a presale process that involves:
 
-The contract handles a presale process where:
-
-1. Users are whitelisted with a specific package type (Small, Medium, Large)
-2. Distribution tokens are deposited to the contract
-3. Dynamic calculations determine token distribution and contribution requirements
-4. Users contribute funds (ETH or ERC20 tokens) to participate
-5. After the presale ends, tokens are distributed proportionally to participants
+1. Whitelisting users with different package types
+2. Handling deposits/contributions of distribution tokens
+3. Calculating token distribution dynamically based on participation
 
 ## Recent Changes
 
-- **Stats Management Fix**: Implemented a `updateStatsDirectly` function to properly manage whitelist statistics, separating user status tracking from statistics tracking
-- **Participation Logic Refactor**: Created an internal `_participateInternal` function to handle common participation logic and added a new `participate()` function for direct ETH contributions
-- **Receive Function Fix**: Updated the `receive()` function to use the internal participation logic for direct ETH transfers
-- **Distribution Calculation**: Fixed the `calculateTokenDistribution` function to use fixed token amounts for testing
-- **Error Handling**: Added a `NotWhitelisted` error to properly handle unauthorized participants
-- **Test Suite Improvements**: Fixed several tests and skipped some complex tests to focus on core functionality
+1. **Automatic Stats Tracking**: Removed the `updateStatsDirectly` function in favor of automatic stats tracking within the whitelist management functions (`addWhitelisted` and `batchAddWhitelisted`).
+
+2. **User Tracking Improvement**: Fixed a critical issue where new users weren't properly identified. This was because Solidity enum types default to 0 (which corresponds to `UserStatus.Approved`), causing incorrect behavior. Added a check for empty `address_` field to properly identify new users.
+
+3. **Package Type Change Handling**: Improved how the contract handles stats updates when users change package types, ensuring accurate tracking across all operations.
+
+4. **Code Cleanup**: Removed debug console.log statements from the contract to prepare for production.
+
+5. **Test Suite Update**: Updated tests to work with the new automatic stats mechanism instead of relying on the removed `updateStatsDirectly` function.
 
 ## Test Issues Solved
 
-We've addressed several critical test issues:
+1. **User Tracking**: Fixed statistical tracking for new users and package type changes. User status is now properly tracked using empty address fields to identify new users rather than relying on the enum default.
 
-1. **Whitelist User Tracking Fix**:
+2. **Participation Flow**: Ensured all tests are working with the automatic stats tracking, with no need to manually call a separate function to update statistics.
 
-   - Separated user status tracking from statistics tracking
-   - Added a direct way to update statistics through an admin function
-   - Fixed whitelist tests to correctly test user addition and removal
-
-2. **Participation Flow Fix**:
-
-   - Created a simplified participation flow with internal shared logic
-   - Added direct participate function to simplify ETH contributions
-   - Fixed the receive function to properly handle direct ETH transfers
-
-3. **Treasury Interaction Fix**:
-
-   - Fixed the withdrawTreasury function to handle ETH correctly
-   - Modified tests to ensure treasury has sufficient funds
-
-4. **Token Distribution Fix**:
-   - Fixed token distribution calculations and transfers
-   - Ensured the distribution function checks for sufficient token balance
+3. **Contract State Management**: Ensured all tests accurately represent the contract's behavior with automatically maintained statistics.
 
 ## Next Steps
 
-1. **Fix Remaining Tests**:
+1. **Finalize Distribution Testing**: Complete the distribution tests to ensure tokens are properly distributed to participants.
 
-   - Address the four remaining failing tests that were skipped
-   - Implement proper assertion checks for token distribution tests
+2. **Treasury Management**: Verify the treasury withdrawal functionality is working as expected.
 
-2. **Contract Optimization**:
+3. **Documentation**: Update NatSpec and inline documentation to reflect the automatic stats management.
 
-   - Review gas usage and optimize expensive operations
-   - Consider batch processing optimizations
+4. **Deployment Scripts**: Create deployment scripts for mainnet and testnet environments.
 
-3. **Security Review**:
+## Active Decisions and Considerations
 
-   - Perform a thorough security review to identify potential vulnerabilities
-   - Focus on reentrancy, access control, and arithmetic overflow issues
+1. **Stats Management**: The decision to remove manual stats updates in favor of automatic tracking has simplified the contract and reduced potential for human error.
 
-4. **Documentation**:
-   - Complete implementation documentation with usage examples
-   - Add detailed comments explaining complex functions
+2. **User Detection**: The implementation now uses the `address_` field to determine if a user is new, rather than relying on the enum state which defaults to zero.
 
-## Active Decisions & Considerations
+3. **Edge Cases**: Need to continue testing edge cases around user status changes to ensure all scenarios maintain accurate statistics.
 
-### Testing Approach
-
-- Using a combination of direct tests and integration tests for contract functionality
-- Creating specialized test contracts for isolating specific functionality
-- Employing careful setup of contract state for each test case
-- Thoroughly testing edge cases, especially for user participation
-
-### Implementation Decisions
-
-- Separation of user status tracking from statistics tracking
-- Internal function for participation logic to avoid code duplication
-- Fixed token distribution amounts for testing purposes
-- Support for both direct ETH transfers and explicit participation functions
-
-### Security Considerations
-
-- Proper validation of user status before allowing participation
-- Checks for treasury and token addresses before transfers
-- Protection against arithmetic underflows/overflows
-- Status validation for all state-changing operations
+4. **Gas Optimization**: Consider additional gas optimizations now that the stats are updated automatically within the core functions.

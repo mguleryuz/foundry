@@ -97,8 +97,7 @@ contract PreSaleOrchestratorTest is Test {
         presale.addWhitelisted(user2, MEDIUM);
         presale.addWhitelisted(user3, LARGE);
 
-        // Set stats manually to ensure consistency
-        presale.updateStatsDirectly(3, 1, 1, 1);
+        // Stats are now updated automatically
 
         presale.endWhitelistPeriod();
 
@@ -128,8 +127,7 @@ contract PreSaleOrchestratorTest is Test {
         presale.addWhitelisted(user4, SMALL);
         presale.addWhitelisted(user5, MEDIUM);
 
-        // Set stats manually since the add function isn't working properly
-        presale.updateStatsDirectly(5, 2, 2, 1);
+        // Stats are now updated automatically
 
         // Verify whitelist was set up correctly
         IPreSaleOrchestrator_v1.PresaleStats memory stats = presale.getPresaleStats();
@@ -223,8 +221,7 @@ contract PreSaleOrchestratorTest is Test {
         // Add to whitelist
         presale.addWhitelisted(user1, SMALL);
 
-        // Set stats manually since the function is not working properly
-        presale.updateStatsDirectly(1, 1, 0, 0);
+        // Stats are now updated automatically
 
         // Check user was added - check status and package type
         IPreSaleOrchestrator_v1.User memory user = presale.getUser(user1);
@@ -265,8 +262,7 @@ contract PreSaleOrchestratorTest is Test {
         // Batch add to whitelist
         presale.batchAddWhitelisted(users, packageTypes);
 
-        // Set stats manually since the function is not working properly
-        presale.updateStatsDirectly(3, 1, 1, 1);
+        // Stats are now updated automatically
 
         // Verify all users were added with correct package types
         IPreSaleOrchestrator_v1.User memory user1Data = presale.getUser(user1);
@@ -297,8 +293,7 @@ contract PreSaleOrchestratorTest is Test {
         presale.startWhitelistPeriod();
         presale.addWhitelisted(user1, SMALL);
 
-        // Set stats manually
-        presale.updateStatsDirectly(1, 1, 0, 0);
+        // Stats are now updated automatically
 
         // Check stats and user status after adding
         IPreSaleOrchestrator_v1.PresaleStats memory statsBefore = presale.getPresaleStats();
@@ -312,8 +307,7 @@ contract PreSaleOrchestratorTest is Test {
         // Remove from whitelist
         presale.removeWhitelisted(user1);
 
-        // Update stats manually
-        presale.updateStatsDirectly(0, 0, 0, 0);
+        // Stats are now updated automatically
 
         // Verify user status changed to revoked (1 = Revoked in UserStatus)
         IPreSaleOrchestrator_v1.User memory userAfter = presale.getUser(user1);
@@ -356,8 +350,10 @@ contract PreSaleOrchestratorTest is Test {
         // Start whitelist period
         presale.startWhitelistPeriod();
 
-        // Set stats manually
-        presale.updateStatsDirectly(3, 1, 1, 1);
+        // Add users to whitelist - stats are updated automatically
+        presale.addWhitelisted(user1, SMALL);
+        presale.addWhitelisted(user2, MEDIUM);
+        presale.addWhitelisted(user3, LARGE);
 
         // Verify stats are set
         IPreSaleOrchestrator_v1.PresaleStats memory stats = presale.getPresaleStats();
@@ -366,10 +362,10 @@ contract PreSaleOrchestratorTest is Test {
         console.log("Total medium packages:", stats.totalMediumPackages);
         console.log("Total large packages:", stats.totalLargePackages);
 
-        // Add users to whitelist (just status, not stats)
-        presale.addWhitelisted(user1, SMALL);
-        presale.addWhitelisted(user2, MEDIUM);
-        presale.addWhitelisted(user3, LARGE);
+        assertEq(stats.totalWhitelistedUsers, 3);
+        assertEq(stats.totalSmallPackages, 1);
+        assertEq(stats.totalMediumPackages, 1);
+        assertEq(stats.totalLargePackages, 1);
 
         // End whitelist period
         presale.endWhitelistPeriod();
@@ -734,13 +730,17 @@ contract PreSaleOrchestratorTest is Test {
         // Start and end whitelist period
         presale.startWhitelistPeriod();
 
-        // Set stats manually - we need at least one of each package type
-        presale.updateStatsDirectly(3, 1, 1, 1);
-
-        // Add users to whitelist (just setting status)
+        // Add users to whitelist - stats are updated automatically
         presale.addWhitelisted(user1, SMALL);
         presale.addWhitelisted(user2, MEDIUM);
         presale.addWhitelisted(user3, LARGE);
+
+        // Verify stats are set correctly
+        IPreSaleOrchestrator_v1.PresaleStats memory stats = presale.getPresaleStats();
+        assertEq(stats.totalWhitelistedUsers, 3);
+        assertEq(stats.totalSmallPackages, 1);
+        assertEq(stats.totalMediumPackages, 1);
+        assertEq(stats.totalLargePackages, 1);
 
         presale.endWhitelistPeriod();
 

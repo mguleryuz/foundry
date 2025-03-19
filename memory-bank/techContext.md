@@ -53,9 +53,11 @@ A comprehensive testing strategy is implemented:
 
 **Solution**:
 
-- Separated user status tracking from statistics tracking
-- Added a direct admin function for managing statistics
-- Modified the whitelist functions to not automatically update statistics
+- Implemented automatic statistics tracking within whitelist management functions
+- Added intelligence to detect new users by checking if address\_ field is empty (address(0))
+- Improved handling of package type changes to correctly update statistics
+- Fixed a critical issue with Solidity enums defaulting to 0 (UserStatus.Approved) causing false positives
+- Removed separate updateStatsDirectly function to reduce complexity and potential for error
 
 ### 2. Participation Flow
 

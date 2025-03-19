@@ -37,8 +37,7 @@ contract StatsTest is Test {
         // Add to whitelist
         presale.addWhitelisted(user1, SMALL);
 
-        // Update stats manually
-        presale.updateStatsDirectly(statsBefore.totalWhitelistedUsers + 1, statsBefore.totalSmallPackages + 1, 0, 0);
+        // Stats are now updated automatically
 
         // Get stats after adding
         IPreSaleOrchestrator_v1.PresaleStats memory statsAfter = presale.getPresaleStats();

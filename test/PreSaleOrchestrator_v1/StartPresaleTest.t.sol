@@ -36,44 +36,52 @@ contract StartPresaleTest is Test {
         // Start whitelist period
         presale.startWhitelistPeriod();
 
-        console.log("Step 2: Setting stats");
-        // Set stats manually
-        presale.updateStatsDirectly(3, 1, 1, 1);
-
-        console.log("Step 3: Adding users");
-        // Add user status without affecting stats
+        console.log("Step 2: Adding users");
+        // Add users with appropriate package types
         presale.addWhitelisted(user1, SMALL);
         presale.addWhitelisted(user2, MEDIUM);
         presale.addWhitelisted(user3, LARGE);
 
-        console.log("Step 4: Ending whitelist");
+        // Verify the stats were updated correctly
+        IPreSaleOrchestrator_v1.PresaleStats memory stats = presale.getPresaleStats();
+        console.log("Total whitelisted users:", stats.totalWhitelistedUsers);
+        console.log("Total small packages:", stats.totalSmallPackages);
+        console.log("Total medium packages:", stats.totalMediumPackages);
+        console.log("Total large packages:", stats.totalLargePackages);
+
+        assertEq(stats.totalWhitelistedUsers, 3);
+        assertEq(stats.totalSmallPackages, 1);
+        assertEq(stats.totalMediumPackages, 1);
+        assertEq(stats.totalLargePackages, 1);
+
+        console.log("Step 3: Ending whitelist");
         // End whitelist period
         presale.endWhitelistPeriod();
 
-        console.log("Step 5: Depositing tokens");
+        console.log("Step 4: Depositing tokens");
         // Deposit tokens - substantial amount
         token.approve(address(presale), 1_000_000 * 10 ** 18);
         presale.depositDistribution(1_000_000 * 10 ** 18);
 
-        console.log("Step 6: Calculating distribution");
+        console.log("Step 5: Calculating distribution");
         // Check distribution calculated correctly
         (uint256 small, uint256 medium, uint256 large) = presale.calculateTokenDistribution();
         console.log("Small distribution:", small);
         console.log("Medium distribution:", medium);
         console.log("Large distribution:", large);
 
-        console.log("Step 7: Starting presale");
+        console.log("Step 6: Starting presale");
         // Start presale
         presale.startPreSale();
 
-        console.log("Step 8: Checking requirements");
+        console.log("Step 7: Checking requirements");
         // Verify requirements were set correctly
         IPreSaleOrchestrator_v1.ContributionRequirement memory reqs = presale.getContributionRequirements();
         console.log("Small requirement:", reqs.smallPackageRequirement);
         console.log("Medium requirement:", reqs.mediumPackageRequirement);
         console.log("Large requirement:", reqs.largePackageRequirement);
 
-        console.log("Step 9: Verifying active");
+        console.log("Step 8: Verifying active");
         // Verify presale is active
         assertEq(uint256(presale.getPreSalePeriodStatus()), 1); // 1 = Active
     }

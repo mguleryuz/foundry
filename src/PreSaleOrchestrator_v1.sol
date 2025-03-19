@@ -465,8 +465,11 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     {
         User storage user = _users[_whitelisted];
 
-        // Only add if not already approved
-        if (user.status != UserStatus.Approved) {
+        // Check if this is a new user (address_ not set means never initialized)
+        bool isNewUser = user.address_ == address(0);
+
+        // Only add if new user or previously revoked/rejected
+        if (isNewUser || user.status != UserStatus.Approved) {
             // Initialize user data
             user.status = UserStatus.Approved;
             user.packageType = _packageType;
@@ -476,14 +479,40 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
             // Add to whitelist array
             _whitelistedUsers.push(_whitelisted);
 
-            // We don't update stats here anymore - use updateStatsDirectly instead
+            // Update stats
+            _presaleStats.totalWhitelistedUsers += 1;
+            if (_packageType == PackageType.Small) {
+                _presaleStats.totalSmallPackages += 1;
+            } else if (_packageType == PackageType.Medium) {
+                _presaleStats.totalMediumPackages += 1;
+            } else if (_packageType == PackageType.Large) {
+                _presaleStats.totalLargePackages += 1;
+            }
 
             emit WhitelistedGranted(_whitelisted, _packageType);
         } else if (user.packageType != _packageType) {
+            // User is already approved but we're changing package type
+
+            // Update stats by decrementing old package and incrementing new package
+            if (user.packageType == PackageType.Small) {
+                _presaleStats.totalSmallPackages -= 1;
+            } else if (user.packageType == PackageType.Medium) {
+                _presaleStats.totalMediumPackages -= 1;
+            } else if (user.packageType == PackageType.Large) {
+                _presaleStats.totalLargePackages -= 1;
+            }
+
             // Just update package type if already whitelisted
             user.packageType = _packageType;
 
-            // We don't update stats here anymore - use updateStatsDirectly instead
+            // Update stats for new package type
+            if (_packageType == PackageType.Small) {
+                _presaleStats.totalSmallPackages += 1;
+            } else if (_packageType == PackageType.Medium) {
+                _presaleStats.totalMediumPackages += 1;
+            } else if (_packageType == PackageType.Large) {
+                _presaleStats.totalLargePackages += 1;
+            }
 
             emit WhitelistedGranted(_whitelisted, _packageType);
         }
@@ -503,8 +532,11 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         for (uint256 i = 0; i < _whitelisted.length; i++) {
             User storage user = _users[_whitelisted[i]];
 
-            // Only add if not already approved
-            if (user.status != UserStatus.Approved) {
+            // Check if this is a new user (address_ not set means never initialized)
+            bool isNewUser = user.address_ == address(0);
+
+            // Only add if new user or previously revoked/rejected
+            if (isNewUser || user.status != UserStatus.Approved) {
                 // Initialize user data
                 user.status = UserStatus.Approved;
                 user.packageType = _packageTypes[i];
@@ -514,14 +546,40 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
                 // Add to whitelist array
                 _whitelistedUsers.push(_whitelisted[i]);
 
-                // We don't update stats here anymore - use updateStatsDirectly instead
+                // Update stats
+                _presaleStats.totalWhitelistedUsers += 1;
+                if (_packageTypes[i] == PackageType.Small) {
+                    _presaleStats.totalSmallPackages += 1;
+                } else if (_packageTypes[i] == PackageType.Medium) {
+                    _presaleStats.totalMediumPackages += 1;
+                } else if (_packageTypes[i] == PackageType.Large) {
+                    _presaleStats.totalLargePackages += 1;
+                }
 
                 emit WhitelistedGranted(_whitelisted[i], _packageTypes[i]);
             } else if (user.packageType != _packageTypes[i]) {
+                // User is already approved but we're changing package type
+
+                // Update stats by decrementing old package and incrementing new package
+                if (user.packageType == PackageType.Small) {
+                    _presaleStats.totalSmallPackages -= 1;
+                } else if (user.packageType == PackageType.Medium) {
+                    _presaleStats.totalMediumPackages -= 1;
+                } else if (user.packageType == PackageType.Large) {
+                    _presaleStats.totalLargePackages -= 1;
+                }
+
                 // Just update package type if already approved
                 user.packageType = _packageTypes[i];
 
-                // We don't update stats here anymore - use updateStatsDirectly instead
+                // Update stats for new package type
+                if (_packageTypes[i] == PackageType.Small) {
+                    _presaleStats.totalSmallPackages += 1;
+                } else if (_packageTypes[i] == PackageType.Medium) {
+                    _presaleStats.totalMediumPackages += 1;
+                } else if (_packageTypes[i] == PackageType.Large) {
+                    _presaleStats.totalLargePackages += 1;
+                }
 
                 emit WhitelistedGranted(_whitelisted[i], _packageTypes[i]);
             }
@@ -535,7 +593,15 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         User storage user = _users[_whitelisted];
 
         if (user.status == UserStatus.Approved) {
-            // We don't update stats here anymore - use updateStatsDirectly instead
+            // Update stats
+            _presaleStats.totalWhitelistedUsers -= 1;
+            if (user.packageType == PackageType.Small) {
+                _presaleStats.totalSmallPackages -= 1;
+            } else if (user.packageType == PackageType.Medium) {
+                _presaleStats.totalMediumPackages -= 1;
+            } else if (user.packageType == PackageType.Large) {
+                _presaleStats.totalLargePackages -= 1;
+            }
 
             // Update user status
             user.status = UserStatus.Revoked;
@@ -840,16 +906,5 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
         // Use the internal participation function
         _participateInternal(msg.sender, msg.value);
-    }
-
-    // Debug function for testing
-    function updateStatsDirectly(uint256 _totalUsers, uint256 _small, uint256 _medium, uint256 _large)
-        external
-        onlyAdmin
-    {
-        _presaleStats.totalWhitelistedUsers = _totalUsers;
-        _presaleStats.totalSmallPackages = _small;
-        _presaleStats.totalMediumPackages = _medium;
-        _presaleStats.totalLargePackages = _large;
     }
 }

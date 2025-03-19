@@ -97,9 +97,10 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
 
 - **Statistics Management**:
 
-  - Direct admin control over presale statistics
-  - Specialized updateStatsDirectly function for admin control
-  - Clear separation of user status from statistics tracking
+  - Automatic tracking of presale statistics within whitelist management functions
+  - Intelligent detection of new users through empty address checks
+  - Proper updating of stats during package type changes
+  - Accurate tracking of total packages by type and overall participation metrics
 
 - **Presale Process**:
 
