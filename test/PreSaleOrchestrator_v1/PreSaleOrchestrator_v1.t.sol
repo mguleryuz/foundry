@@ -15,7 +15,6 @@ contract PreSaleOrchestratorTest is Test {
 
     // User addresses
     address private admin = address(this);
-    address private treasury = makeAddr("treasury");
     address private user1 = makeAddr("user1");
     address private user2 = makeAddr("user2");
     address private user3 = makeAddr("user3");
@@ -42,6 +41,9 @@ contract PreSaleOrchestratorTest is Test {
     IPreSaleOrchestrator_v1.UserStatus private constant APPROVED = IPreSaleOrchestrator_v1.UserStatus.Approved;
     IPreSaleOrchestrator_v1.UserStatus private constant REVOKED = IPreSaleOrchestrator_v1.UserStatus.Revoked;
     IPreSaleOrchestrator_v1.UserStatus private constant REJECTED = IPreSaleOrchestrator_v1.UserStatus.Rejected;
+
+    // Add a receive function to allow the test contract to receive ETH
+    receive() external payable {}
 
     function setUp() public {
         // Deploy mock tokens
@@ -74,7 +76,6 @@ contract PreSaleOrchestratorTest is Test {
 
     // Helper function to set up the basic configuration
     function _setupBasicConfig() internal {
-        presale.setTreasury(treasury);
         presale.setDistributionToken(address(distributionToken));
     }
 
@@ -104,9 +105,6 @@ contract PreSaleOrchestratorTest is Test {
         // Deposit distribution tokens
         distributionToken.approve(address(presale), DISTRIBUTION_AMOUNT);
         presale.depositDistribution(DISTRIBUTION_AMOUNT);
-
-        // Make sure treasury has some ETH for withdrawals
-        vm.deal(treasury, 10 ether);
 
         // Start presale
         presale.startPreSale();
@@ -156,9 +154,9 @@ contract PreSaleOrchestratorTest is Test {
         assertTrue(presale.getPresaleConfig().whitelistStatus == INACTIVE);
         assertTrue(presale.getPresaleConfig().preSaleStatus == INACTIVE);
 
-        // Test setting treasury
-        presale.setTreasury(treasury);
-        assertEq(presale.getTreasury(), treasury);
+        // Test setting payment currency
+        presale.setPaymentCurrency(address(paymentToken));
+        assertEq(presale.getPaymentCurrency(), address(paymentToken));
 
         // Test setting distribution token
         presale.setDistributionToken(address(distributionToken));
@@ -171,8 +169,8 @@ contract PreSaleOrchestratorTest is Test {
 
         // Test as new admin
         vm.startPrank(newAdmin);
-        presale.setTreasury(makeAddr("newTreasury"));
-        assertEq(presale.getTreasury(), makeAddr("newTreasury"));
+        presale.setPaymentCurrency(address(paymentToken));
+        assertEq(presale.getPaymentCurrency(), address(paymentToken));
         vm.stopPrank();
 
         // Remove admin
@@ -181,7 +179,7 @@ contract PreSaleOrchestratorTest is Test {
         // Attempt action as removed admin should fail
         vm.startPrank(newAdmin);
         vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__CallerIsNotAdmin.selector);
-        presale.setTreasury(makeAddr("anotherTreasury"));
+        presale.setPaymentCurrency(address(0));
         vm.stopPrank();
     }
 
@@ -190,8 +188,8 @@ contract PreSaleOrchestratorTest is Test {
         presale.removeAdmin(admin);
 
         // Should still be able to perform admin actions
-        presale.setTreasury(treasury);
-        assertEq(presale.getTreasury(), treasury);
+        presale.setPaymentCurrency(address(paymentToken));
+        assertEq(presale.getPaymentCurrency(), address(paymentToken));
     }
 
     //--------------------------------------------------------------------------
@@ -435,8 +433,8 @@ contract PreSaleOrchestratorTest is Test {
         IPreSaleOrchestrator_v1.User memory user = presale.getUser(user1);
         assertEq(user.amountContributed, maxContribution);
 
-        // Verify treasury received the ETH
-        assertEq(address(treasury).balance, 10 ether + maxContribution); // 10 ether from setup + contribution
+        // Verify contract received the ETH
+        assertEq(address(presale).balance, maxContribution);
     }
 
     function testParticipateWithERC20() public {
@@ -456,8 +454,8 @@ contract PreSaleOrchestratorTest is Test {
         IPreSaleOrchestrator_v1.User memory user = presale.getUser(user2);
         assertEq(user.amountContributed, maxContribution);
 
-        // Verify treasury received the tokens
-        assertEq(paymentToken.balanceOf(treasury), maxContribution);
+        // Verify contract received the tokens
+        assertEq(paymentToken.balanceOf(address(presale)), maxContribution);
     }
 
     function testCannotExceedMaxContribution() public {
@@ -670,7 +668,7 @@ contract PreSaleOrchestratorTest is Test {
         presale.withdrawDistribution(1);
     }
 
-    function testWithdrawTreasury() public {
+    function testWithdrawPaymentCurrency() public {
         // Setup a complete presale with ETH
         _setupCompletePresaleWithETH();
 
@@ -680,55 +678,41 @@ contract PreSaleOrchestratorTest is Test {
         presale.participate{value: contributionAmount}(contributionAmount);
         vm.stopPrank();
 
-        // Verify treasury received ETH
-        assertEq(treasury.balance, 11 ether); // 10 ether from setup + 1 from user
+        // Verify contract received ETH
+        assertEq(address(presale).balance, contributionAmount);
 
-        // Admin withdraws treasury
-        presale.withdrawTreasury(contributionAmount);
+        // Admin withdraws payment currency
+        uint256 adminBalanceBefore = address(admin).balance;
+        presale.withdrawPaymentCurrency(contributionAmount);
 
-        // Verify event is emitted (we can't check balance since it's just emitting an event)
-        // In a real environment with proper withdrawals, we would check balances
+        // Verify admin received ETH and contract balance is 0
+        assertEq(address(admin).balance, adminBalanceBefore + contributionAmount);
+        assertEq(address(presale).balance, 0);
     }
 
-    function testWithdrawTreasuryERC20() public {
+    function testWithdrawPaymentCurrencyERC20() public {
         // Create a fresh instance with ERC20 payment
-        _createFreshInstance();
-        presale.setPaymentCurrency(address(paymentToken));
-
-        // Start whitelist period and add a user
-        presale.startWhitelistPeriod();
-        presale.addWhitelisted(user1, SMALL);
-        presale.endWhitelistPeriod();
-
-        // Deposit distribution tokens
-        distributionToken.approve(address(presale), DISTRIBUTION_AMOUNT);
-        presale.depositDistribution(DISTRIBUTION_AMOUNT);
-
-        // Start presale
-        presale.startPreSale();
+        _setupCompletePresaleWithERC20();
 
         // Have user1 participate with ERC20 token
         vm.startPrank(user1);
-        paymentToken.approve(address(presale), 1 ether);
-        presale.participateWithERC20(1 ether);
+        uint256 contributionAmount = 1 ether;
+        paymentToken.approve(address(presale), contributionAmount);
+        presale.participateWithERC20(contributionAmount);
         vm.stopPrank();
 
-        // Verify treasury received the tokens
-        assertEq(paymentToken.balanceOf(treasury), 1 ether);
-
-        // Approve transfer from treasury to admin
-        vm.prank(treasury);
-        paymentToken.approve(address(presale), 1 ether);
+        // Verify contract received the tokens
+        assertEq(paymentToken.balanceOf(address(presale)), contributionAmount);
 
         // Track admin token balance before withdrawal
-        uint256 adminTokenBalanceBefore = paymentToken.balanceOf(address(this));
+        uint256 adminTokenBalanceBefore = paymentToken.balanceOf(address(admin));
 
-        // Withdraw ERC20 from treasury
-        presale.withdrawTreasury(1 ether);
+        // Withdraw ERC20 from contract
+        presale.withdrawPaymentCurrency(contributionAmount);
 
-        // Verify admin received the tokens
-        assertEq(paymentToken.balanceOf(address(this)), adminTokenBalanceBefore + 1 ether);
-        assertEq(paymentToken.balanceOf(treasury), 0);
+        // Verify admin received the tokens and contract balance is 0
+        assertEq(paymentToken.balanceOf(address(admin)), adminTokenBalanceBefore + contributionAmount);
+        assertEq(paymentToken.balanceOf(address(presale)), 0);
     }
 
     //--------------------------------------------------------------------------
@@ -815,6 +799,28 @@ contract PreSaleOrchestratorTest is Test {
 
         // Distribution should be marked as complete
         assertTrue(presale.isDistributionComplete());
+    }
+
+    //--------------------------------------------------------------------------
+    // New Tests for Configuration After Presale Started
+
+    function testCannotChangePaymentCurrencyAfterPresaleStarted() public {
+        _setupCompletePresaleWithETH();
+
+        // Try to change payment currency after presale has started
+        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__CannotChangeAfterPresaleStarted.selector);
+        presale.setPaymentCurrency(address(paymentToken));
+    }
+
+    function testCannotChangeDistributionTokenAfterPresaleStarted() public {
+        _setupCompletePresaleWithETH();
+
+        // Deploy a new token for testing
+        MockERC20 newToken = new MockERC20("New Token", "NEW", 18);
+
+        // Try to change distribution token after presale has started
+        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__CannotChangeAfterPresaleStarted.selector);
+        presale.setDistributionToken(address(newToken));
     }
 
     // Helper function to verify enum values

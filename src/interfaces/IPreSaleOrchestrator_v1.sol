@@ -13,8 +13,8 @@ interface IPreSaleOrchestrator_v1 {
     /// @notice An admin is removed from the contract.
     event AdminRemoved(address indexed admin);
 
-    /// @notice Treasury address is set.
-    event TreasurySet(address indexed treasury);
+    /// @notice Payment currency is set.
+    event PaymentCurrencySet(address indexed currency);
 
     /// @notice Distribution token is set.
     event DistributionTokenSet(address indexed token);
@@ -33,8 +33,8 @@ interface IPreSaleOrchestrator_v1 {
     /// @notice User deposits contribution into the presale.
     event UserParticipated(address indexed user, uint256 amount);
 
-    /// @notice Treasury token is withdrawn.
-    event TreasuryWithdrawn(uint256 amount);
+    /// @notice Payment currency is withdrawn.
+    event PaymentCurrencyWithdrawn(uint256 amount);
 
     /// @notice The distribution token is deposited from address.
     event DistributionDeposited(address indexed from, uint256 amount);
@@ -92,7 +92,7 @@ interface IPreSaleOrchestrator_v1 {
 
     error IPreSaleOrchestrator__AmountIsHigherThanPackage();
 
-    error IPreSaleOrchestrator__TreasuryIsNotSet();
+    error IPreSaleOrchestrator__PaymentCurrencyIsNotSet();
 
     error IPreSaleOrchestrator__DistributionTokenIsNotSet();
 
@@ -107,6 +107,8 @@ interface IPreSaleOrchestrator_v1 {
     error IPreSaleOrchestrator__MinimumContributionNotMet();
 
     error IPreSaleOrchestrator__NoWhitelistedUsers();
+
+    error IPreSaleOrchestrator__CannotChangeAfterPresaleStarted();
 
     //--------------------------------------------------------------------------
     // Enums
@@ -134,7 +136,6 @@ interface IPreSaleOrchestrator_v1 {
     // Structs
 
     struct PresaleConfig {
-        address treasury;
         address distributionToken;
         address paymentCurrency; // ETH if address(0), otherwise ERC20 token
         ProcessStatus whitelistStatus;
@@ -181,17 +182,13 @@ interface IPreSaleOrchestrator_v1 {
     /// @notice Removes an admin from the pre-sale orchestrator.
     function removeAdmin(address _admin) external;
 
-    /// @notice Sets the treasury address (admin only) (before presale period only).
-    /// @dev Treasury is where user contributions are collected.
-    function setTreasury(address _treasury) external;
+    /// @notice Sets the payment currency (admin only) (before presale period only).
+    /// @dev If set to address(0), payments are accepted in ETH, otherwise in the specified ERC20 token.
+    function setPaymentCurrency(address _currency) external;
 
     /// @notice Sets the distribution token (admin only) (before presale period only).
     /// @dev Distribution token is the token being sold in the presale.
     function setDistributionToken(address _token) external;
-
-    /// @notice Sets the payment currency (admin only) (before presale period only).
-    /// @dev If set to address(0), payments are accepted in ETH, otherwise in the specified ERC20 token.
-    function setPaymentCurrency(address _token) external;
 
     /// @notice Distributes the tokens to the users (admin only) (after presale period only).
     /// @dev This automatically sends tokens to all participating users based on their contributions.
@@ -209,7 +206,7 @@ interface IPreSaleOrchestrator_v1 {
 
     /// @notice Withdraws the collected user contributions (admin only).
     /// @dev Can only be called by admin after presale has ended.
-    function withdrawTreasury(uint256 _amount) external;
+    function withdrawPaymentCurrency(uint256 _amount) external;
 
     /// @notice Deposits the distribution token for later distribution (admin only).
     /// @dev This is where admin deposits tokens that will be sold/distributed.
@@ -275,9 +272,6 @@ interface IPreSaleOrchestrator_v1 {
     /// @notice Returns the presale configuration.
     function getPresaleConfig() external view returns (PresaleConfig memory);
 
-    /// @notice Returns the treasury address.
-    function getTreasury() external view returns (address);
-
     /// @notice Returns the distribution token.
     function getDistributionToken() external view returns (address);
 
@@ -295,9 +289,9 @@ interface IPreSaleOrchestrator_v1 {
     /// @dev This is the amount of tokens available to be distributed.
     function getDistributionBalance() external view returns (uint256);
 
-    /// @notice Returns the treasury balance.
+    /// @notice Returns the payment currency balance.
     /// @dev This is the total amount of user contributions collected.
-    function getTreasuryBalance() external view returns (uint256);
+    function getPaymentCurrencyBalance() external view returns (uint256);
 
     /// @notice Returns whether distribution has been completed.
     function isDistributionComplete() external view returns (bool);

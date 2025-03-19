@@ -13,7 +13,6 @@ contract StartPresaleTest is Test {
     address public user1 = makeAddr("user1");
     address public user2 = makeAddr("user2");
     address public user3 = makeAddr("user3");
-    address public treasury = makeAddr("treasury");
 
     IPreSaleOrchestrator_v1.PackageType private constant SMALL = IPreSaleOrchestrator_v1.PackageType.Small;
     IPreSaleOrchestrator_v1.PackageType private constant MEDIUM = IPreSaleOrchestrator_v1.PackageType.Medium;
@@ -27,7 +26,6 @@ contract StartPresaleTest is Test {
         token.mint(address(this), 1_000_000 * 10 ** 18);
 
         // Set basic config
-        presale.setTreasury(treasury);
         presale.setDistributionToken(address(token));
     }
 

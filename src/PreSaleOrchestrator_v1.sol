@@ -134,11 +134,11 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     }
 
     /**
-     * @notice Ensures the treasury is set
+     * @notice Ensures the payment currency is set
      */
-    modifier treasurySet() {
-        if (_presaleConfig.treasury == address(0)) {
-            revert IPreSaleOrchestrator__TreasuryIsNotSet();
+    modifier paymentCurrencySet() {
+        if (_presaleConfig.paymentCurrency == address(0)) {
+            revert IPreSaleOrchestrator__PaymentCurrencyIsNotSet();
         }
         _;
     }
@@ -179,24 +179,25 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function setTreasury(address _treasury) external override onlyAdmin {
-        _presaleConfig.treasury = _treasury;
-        emit TreasurySet(_treasury);
+    function setPaymentCurrency(address _currency) external override onlyAdmin {
+        // Cannot change payment currency after presale has started
+        if (_presaleConfig.preSaleStatus != ProcessStatus.Inactive) {
+            revert IPreSaleOrchestrator__CannotChangeAfterPresaleStarted();
+        }
+        _presaleConfig.paymentCurrency = _currency;
+        emit PaymentCurrencySet(_currency);
     }
 
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
     function setDistributionToken(address _token) external override onlyAdmin {
+        // Cannot change distribution token after presale has started
+        if (_presaleConfig.preSaleStatus != ProcessStatus.Inactive) {
+            revert IPreSaleOrchestrator__CannotChangeAfterPresaleStarted();
+        }
         _presaleConfig.distributionToken = _token;
         emit DistributionTokenSet(_token);
-    }
-
-    /**
-     * @inheritdoc IPreSaleOrchestrator_v1
-     */
-    function setPaymentCurrency(address _token) external override onlyAdmin {
-        _presaleConfig.paymentCurrency = _token;
     }
 
     /**
@@ -258,7 +259,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function participate(uint256 _amount) external payable onlyWhitelisted presaleActive {
+    function participate(uint256 _amount) external payable override onlyWhitelisted presaleActive {
         // Make an additional explicit check for whitelisted status
         if (_users[msg.sender].status != UserStatus.Approved) {
             revert IPreSaleOrchestrator__CallerIsNotWhitelisted();
@@ -308,10 +309,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         // Update stats
         _presaleStats.totalContributionsReceived += _amount;
 
-        // Forward ETH to treasury
-        (bool success,) = payable(_presaleConfig.treasury).call{value: msg.value}("");
-        require(success, "ETH transfer failed");
-
         emit UserParticipated(_user, _amount);
     }
 
@@ -344,9 +341,9 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         // Update stats
         _presaleStats.totalContributionsReceived += _amount;
 
-        // Transfer tokens to treasury
+        // Transfer tokens to contract
         IERC20 paymentToken = IERC20(_presaleConfig.paymentCurrency);
-        paymentToken.safeTransferFrom(msg.sender, _presaleConfig.treasury, _amount);
+        paymentToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         emit UserParticipated(msg.sender, _amount);
     }
@@ -354,32 +351,19 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function withdrawTreasury(uint256 _amount) external override onlyAdmin {
-        if (_presaleConfig.treasury == address(0)) {
-            revert IPreSaleOrchestrator__TreasuryIsNotSet();
-        }
-
+    function withdrawPaymentCurrency(uint256 _amount) external override onlyAdmin {
         if (_presaleConfig.paymentCurrency == address(0)) {
             // ETH withdrawal
-            // Check if the treasury is this contract
-            if (_presaleConfig.treasury == address(this)) {
-                // If treasury is this contract, directly transfer ETH to admin
-                (bool success,) = payable(msg.sender).call{value: _amount}("");
-                require(success, "ETH transfer failed");
-            } else {
-                // For external treasury contracts, call withdraw function
-                (bool success,) = _presaleConfig.treasury.call(
-                    abi.encodeWithSignature("withdraw(address,uint256)", msg.sender, _amount)
-                );
-                require(success, "Treasury withdrawal failed");
-            }
-            emit TreasuryWithdrawn(_amount);
+            require(address(this).balance >= _amount, "Insufficient ETH balance");
+            (bool success,) = payable(msg.sender).call{value: _amount}("");
+            require(success, "ETH transfer failed");
         } else {
-            // For ERC20, transfer from treasury to admin
+            // ERC20 withdrawal
             IERC20 paymentToken = IERC20(_presaleConfig.paymentCurrency);
-            paymentToken.safeTransferFrom(_presaleConfig.treasury, msg.sender, _amount);
-            emit TreasuryWithdrawn(_amount);
+            require(paymentToken.balanceOf(address(this)) >= _amount, "Insufficient token balance");
+            paymentToken.safeTransfer(msg.sender, _amount);
         }
+        emit PaymentCurrencyWithdrawn(_amount);
     }
 
     /**
@@ -633,15 +617,7 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function startPreSale()
-        external
-        override
-        onlyAdmin
-        whitelistPeriodEnded
-        presaleNotStarted
-        treasurySet
-        distributionTokenSet
-    {
+    function startPreSale() external override onlyAdmin whitelistPeriodEnded presaleNotStarted distributionTokenSet {
         // Ensure there are whitelisted users
         if (_presaleStats.totalWhitelistedUsers == 0) {
             revert IPreSaleOrchestrator__NoWhitelistedUsers();
@@ -761,13 +737,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function getTreasury() external view override returns (address) {
-        return _presaleConfig.treasury;
-    }
-
-    /**
-     * @inheritdoc IPreSaleOrchestrator_v1
-     */
     function getDistributionToken() external view override returns (address) {
         return _presaleConfig.distributionToken;
     }
@@ -806,17 +775,13 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     /**
      * @inheritdoc IPreSaleOrchestrator_v1
      */
-    function getTreasuryBalance() external view override returns (uint256) {
-        if (_presaleConfig.treasury == address(0)) {
-            return 0;
-        }
-
+    function getPaymentCurrencyBalance() external view override returns (uint256) {
         if (_presaleConfig.paymentCurrency == address(0)) {
             // ETH balance
-            return _presaleConfig.treasury.balance;
+            return address(this).balance;
         } else {
             // ERC20 balance
-            return IERC20(_presaleConfig.paymentCurrency).balanceOf(_presaleConfig.treasury);
+            return IERC20(_presaleConfig.paymentCurrency).balanceOf(address(this));
         }
     }
 
