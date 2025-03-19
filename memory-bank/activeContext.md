@@ -11,23 +11,27 @@ The project is currently focusing on the development of two main smart contracts
    - Includes whitelist functionality for controlling who can mint/burn tokens
 
 2. **PreSaleOrchestrator_v1**: A contract for managing token pre-sales
-   - This contract is in early development stages (file exists but is empty)
-   - Will likely interact with the ERC20Issuance_v1 contract for token distribution
+   - Interface design is now complete with clear token flow management
+   - Defines a comprehensive presale workflow with whitelist, contribution, and distribution phases
+   - Uses dynamic calculations for token distribution based on package types
 
 ## Recent Changes
 
 - Initial setup of the Foundry development environment
 - Implementation of the ERC20Issuance_v1 contract
 - Creation of the interface for ERC20Issuance_v1
+- Design and refinement of the IPreSaleOrchestrator_v1 interface
+- Improved naming conventions for clearer token flow (ContributionRequirement vs TokenDistributionShare)
 - Setup of multi-network configuration for Sepolia and Optimism Sepolia
 
 ## Next Steps
 
-1. **Complete PreSaleOrchestrator_v1 implementation**:
+1. **Implement PreSaleOrchestrator_v1 based on the interface**:
 
-   - Define the interface for pre-sale functionality
-   - Implement core sale mechanics
-   - Establish integration with ERC20Issuance_v1
+   - Develop contract logic for whitelist management
+   - Implement dynamic calculation of token distribution shares
+   - Implement dynamic calculation of contribution requirements
+   - Create distribution mechanism based on user participation
 
 2. **Develop comprehensive tests**:
 
@@ -46,16 +50,19 @@ The project is currently focusing on the development of two main smart contracts
 
 - **Versioning Strategy**: Contracts are versioned (v1) to allow for future upgrades
 - **Interface Separation**: Clear separation between interfaces and implementations
-- **Access Control**: Using whitelist pattern for minting/burning permissions
+- **Access Control**: Using whitelist pattern for minting/burning permissions and presale management
+- **Dynamic Pricing Model**: Token distribution and contribution requirements are calculated dynamically based on total tokens and whitelist data
+- **Multi-Currency Support**: Presale can accept ETH or any ERC20 token as payment
 
 ### Technical Considerations
 
 - **Gas Optimization**: Need to ensure efficient gas usage in all operations
 - **Security**: Access controls must be properly implemented and tested
 - **Multi-network Support**: Contracts should work identically across different networks
+- **View Function Limitations**: Need to ensure that view functions don't emit events since they can't modify state
 
 ### Open Questions
 
-1. What specific pre-sale mechanics should be implemented in PreSaleOrchestrator_v1?
-2. Should there be time-based restrictions on the pre-sale process?
-3. What vesting or distribution mechanisms are needed for token distribution?
+1. What specific presale incentives should be implemented for different package types?
+2. Should there be vesting periods after token distribution?
+3. What mechanisms should be in place to handle edge cases like underfunded presales?

@@ -7,10 +7,10 @@ interface IPreSaleOrchestrator_v1 {
 
     // Admin
 
-    /// @notice The minter is set.
+    /// @notice A new admin is added to the contract.
     event AdminAdded(address indexed admin);
 
-    /// @notice The minter is set.
+    /// @notice An admin is removed from the contract.
     event AdminRemoved(address indexed admin);
 
     /// @notice Treasury address is set.
@@ -30,22 +30,33 @@ interface IPreSaleOrchestrator_v1 {
 
     // Token Balances
 
-    /// @notice Treasury token is deposited.
-    event TreasuryDeposited(uint256 amount);
+    /// @notice User deposits contribution into the presale.
+    event UserParticipated(address indexed user, uint256 amount);
 
     /// @notice Treasury token is withdrawn.
     event TreasuryWithdrawn(uint256 amount);
 
-    /// @notice The distribution is deposited.
-    event DistributionDeposited(uint256 amount);
+    /// @notice The distribution token is deposited from address.
+    event DistributionDeposited(address indexed from, uint256 amount);
 
-    /// @notice The distribution is withdrawn.
-    event DistributionWithdrawn(uint256 amount);
+    /// @notice The distribution token is withdrawn to address.
+    event DistributionWithdrawn(address indexed to, uint256 amount);
+
+    /// @notice The distribution is distributed to address.
+    event DistributionDistributed(address indexed to, uint256 amount);
+
+    /// @notice Contribution requirements were dynamically calculated.
+    event ContributionRequirementsCalculated(
+        uint256 smallRequirement, uint256 mediumRequirement, uint256 largeRequirement
+    );
+
+    /// @notice Token distribution shares were calculated.
+    event TokenDistributionCalculated(uint256 smallShare, uint256 mediumShare, uint256 largeShare);
 
     // Whitelist
 
-    /// @notice A address is added to the whitelist.
-    event WhitelistedGranted(address indexed whitelisted);
+    /// @notice A address is added to the whitelist with assigned package type.
+    event WhitelistedGranted(address indexed whitelisted, PackageType packageType);
 
     /// @notice A address is removed from the whitelist.
     event WhitelistedRevoked(address indexed whitelisted);
@@ -56,7 +67,10 @@ interface IPreSaleOrchestrator_v1 {
     // Pre-sale
 
     /// @notice the pre-sale is started.
-    event PreSaleStarted(uint256 startTime, uint256 endTime);
+    event PreSaleStarted();
+
+    /// @notice the pre-sale is paused.
+    event PreSalePaused();
 
     /// @notice the pre-sale is ended.
     event PreSaleEnded();
@@ -70,8 +84,92 @@ interface IPreSaleOrchestrator_v1 {
 
     error IPreSaleOrchestrator__WhitelistPeriodNotActive();
 
+    error IPreSaleOrchestrator__WhitelistPeriodNotEnded();
+
+    error IPreSaleOrchestrator__PresaleAlreadyStarted();
+
+    error IPreSaleOrchestrator__PresaleNotActive();
+
+    error IPreSaleOrchestrator__AmountIsHigherThanPackage();
+
+    error IPreSaleOrchestrator__TreasuryIsNotSet();
+
+    error IPreSaleOrchestrator__DistributionTokenIsNotSet();
+
+    error IPreSaleOrchestrator__DistributionIsNotDeposited();
+
+    error IPreSaleOrchestrator__DistributionAmountInsufficient();
+
+    error IPreSaleOrchestrator__PresaleIsNotEnded();
+
+    error IPreSaleOrchestrator__NotDistributionToken();
+
+    error IPreSaleOrchestrator__MinimumContributionNotMet();
+
     //--------------------------------------------------------------------------
-    // Functions
+    // Enums
+
+    enum ProcessStatus {
+        Inactive,
+        Active,
+        Paused,
+        Ended
+    }
+
+    enum UserStatus {
+        Approved,
+        Revoked,
+        Rejected
+    }
+
+    enum PackageType {
+        Small,
+        Medium,
+        Large
+    }
+
+    //--------------------------------------------------------------------------
+    // Structs
+
+    struct PresaleConfig {
+        address treasury;
+        address distributionToken;
+        address paymentCurrency; // ETH if address(0), otherwise ERC20 token
+        ProcessStatus whitelistStatus;
+        ProcessStatus preSaleStatus;
+        bool distributionComplete;
+    }
+
+    struct TokenDistributionShare {
+        uint256 smallPackageShare;
+        uint256 mediumPackageShare;
+        uint256 largePackageShare;
+    }
+
+    struct User {
+        UserStatus status;
+        PackageType packageType;
+        address address_;
+        uint256 amountContributed;
+    }
+
+    struct PresaleStats {
+        uint256 totalWhitelistedUsers;
+        uint256 totalSmallPackages;
+        uint256 totalMediumPackages;
+        uint256 totalLargePackages;
+        uint256 totalContributionsReceived;
+        uint256 totalDistributionAmount;
+    }
+
+    struct ContributionRequirement {
+        uint256 smallPackageRequirement;
+        uint256 mediumPackageRequirement;
+        uint256 largePackageRequirement;
+    }
+
+    //--------------------------------------------------------------------------
+    // External Functions
 
     // Admin
 
@@ -81,51 +179,153 @@ interface IPreSaleOrchestrator_v1 {
     /// @notice Removes an admin from the pre-sale orchestrator.
     function removeAdmin(address _admin) external;
 
-    /// @notice Sets the treasury address.
+    /// @notice Sets the treasury address (admin only) (before presale period only).
+    /// @dev Treasury is where user contributions are collected.
     function setTreasury(address _treasury) external;
 
-    /// @notice Sets the distribution token.
+    /// @notice Sets the distribution token (admin only) (before presale period only).
+    /// @dev Distribution token is the token being sold in the presale.
     function setDistributionToken(address _token) external;
 
-    /// @notice Starts the whitelist period.
-    function startWhitelistPeriod() external;
+    /// @notice Sets the payment currency (admin only) (before presale period only).
+    /// @dev If set to address(0), payments are accepted in ETH, otherwise in the specified ERC20 token.
+    function setPaymentCurrency(address _token) external;
 
-    /// @notice Pauses the whitelist period.
-    function pauseWhitelistPeriod() external;
-
-    /// @notice Ends the whitelist period.
-    function endWhitelistPeriod() external;
+    /// @notice Distributes the tokens to the users (admin only) (after presale period only).
+    /// @dev This automatically sends tokens to all participating users based on their contributions.
+    function distribute() external;
 
     // Token Balances
 
-    /// @notice Deposits the treasury token.
-    function depositTreasury(uint256 _amount) external;
+    /// @notice Allows a whitelisted user to participate in the presale by depositing funds.
+    /// @dev Users can only deposit up to their assigned package amount during active presale.
+    /// @dev If payment currency is ETH, amount should be sent with the transaction.
+    function participateInPresale(uint256 _amount) external payable;
 
-    /// @notice Withdraws the treasury token.
+    /// @notice Allows a whitelisted user to participate with ERC20 tokens.
+    /// @dev Only used when payment currency is an ERC20 token. User must approve first.
+    function participateWithERC20(uint256 _amount) external;
+
+    /// @notice Withdraws the collected user contributions (admin only).
+    /// @dev Can only be called by admin after presale has ended.
     function withdrawTreasury(uint256 _amount) external;
 
-    /// @notice Deposits the distribution token.
+    /// @notice Deposits the distribution token for later distribution (admin only).
+    /// @dev This is where admin deposits tokens that will be sold/distributed.
     function depositDistribution(uint256 _amount) external;
 
-    /// @notice Withdraws the distribution token.
+    /// @notice Withdraws the distribution token (admin only).
+    /// @dev Can only be called before distribution occurs.
     function withdrawDistribution(uint256 _amount) external;
 
-    // Whitelist
+    // Whitelist Admin
 
-    /// @notice Adds a address to the whitelist.
-    function addWhitelisted(address _whitelisted) external;
+    /// @notice Starts the whitelist period (admin only).
+    function startWhitelistPeriod() external;
 
-    /// @notice Removes a address from the whitelist.
+    /// @notice Pauses the whitelist period (admin only).
+    function pauseWhitelistPeriod() external;
+
+    /// @notice Ends the whitelist period (admin only).
+    function endWhitelistPeriod() external;
+
+    // Whitelist Manager
+
+    /// @notice Adds a address to the whitelist with an assigned package type (admin only) (during whitelist period).
+    function addWhitelisted(address _whitelisted, PackageType _packageType) external;
+
+    /// @notice Batch adds addresses to the whitelist (admin only) (during whitelist period).
+    function batchAddWhitelisted(address[] calldata _whitelisted, PackageType[] calldata _packageTypes) external;
+
+    /// @notice Removes a address from the whitelist (admin only).
     function removeWhitelisted(address _whitelisted) external;
 
-    /// @notice Rejects a address from the whitelist.
+    /// @notice Rejects a address from the whitelist (admin only).
     function rejectWhitelisted(address _whitelisted) external;
 
-    // Pre-sale
+    // Pre-sale Admin
 
-    /// @notice Starts the pre-sale.
+    /// @notice Starts the pre-sale (admin only) (after whitelist period has ended).
+    /// @dev This will finalize token distribution shares and contribution requirements based on approved whitelist.
+    /// @dev Requires distribution token to be deposited and sufficient for all whitelisted users.
     function startPreSale() external;
 
-    /// @notice Ends the pre-sale.
+    /// @notice Pauses the pre-sale (admin only).
+    function pausePreSale() external;
+
+    /// @notice Ends the pre-sale (admin only).
     function endPreSale() external;
+
+    // Getters
+
+    /// @notice Returns the token amount a user will receive for the specified package type.
+    /// @dev This is calculated when presale starts based on total distribution and whitelisted users.
+    function getTokenDistributionShare(PackageType _packageType) external view returns (uint256);
+
+    /// @notice Returns all token distribution shares.
+    function getAllTokenDistributionShares() external view returns (TokenDistributionShare memory);
+
+    /// @notice Returns the user information.
+    function getUser(address _user) external view returns (User memory);
+
+    /// @notice Returns the user's maximum contribution allowed based on package type.
+    function getUserMaxContribution(address _user) external view returns (uint256);
+
+    /// @notice Returns the presale configuration.
+    function getPresaleConfig() external view returns (PresaleConfig memory);
+
+    /// @notice Returns the treasury address.
+    function getTreasury() external view returns (address);
+
+    /// @notice Returns the distribution token.
+    function getDistributionToken() external view returns (address);
+
+    /// @notice Returns the payment currency.
+    /// @dev Returns address(0) if payments are in ETH, otherwise the ERC20 token address.
+    function getPaymentCurrency() external view returns (address);
+
+    /// @notice Returns the whitelist period status.
+    function getWhitelistPeriodStatus() external view returns (ProcessStatus);
+
+    /// @notice Returns the pre-sale period status.
+    function getPreSalePeriodStatus() external view returns (ProcessStatus);
+
+    /// @notice Returns the distribution balance.
+    /// @dev This is the amount of tokens available to be distributed.
+    function getDistributionBalance() external view returns (uint256);
+
+    /// @notice Returns the treasury balance.
+    /// @dev This is the total amount of user contributions collected.
+    function getTreasuryBalance() external view returns (uint256);
+
+    /// @notice Returns whether distribution has been completed.
+    function isDistributionComplete() external view returns (bool);
+
+    /// @notice Returns current presale statistics.
+    function getPresaleStats() external view returns (PresaleStats memory);
+
+    /// @notice Returns the contribution requirements for each package type.
+    /// @dev Requirements are calculated based on distribution token amount and whitelisted users.
+    function getContributionRequirements() external view returns (ContributionRequirement memory);
+
+    /// @notice Returns the contribution requirement for a specific package type.
+    /// @dev Requirement is calculated based on distribution token amount and whitelisted users.
+    function getContributionRequirement(PackageType _packageType) external view returns (uint256);
+
+    //--------------------------------------------------------------------------
+    // Misc
+
+    /// @notice Calculates the token distribution shares based on the distribution balance and whitelisted users.
+    /// @dev This is automatically called when presale starts but can be viewed before.
+    /// @dev Returns token shares for small, medium, and large packages respectively.
+    function calculateTokenDistribution() external view returns (uint256, uint256, uint256);
+
+    /// @notice Validates if the current distribution amount is sufficient for all whitelisted users.
+    /// @dev Used to check if there's enough distribution token before starting presale.
+    /// @return sufficient True if distribution amount is sufficient, false otherwise.
+    /// @return requiredAmount The total amount required for all whitelisted users.
+    function isDistributionSufficient() external view returns (bool sufficient, uint256 requiredAmount);
+
+    /// @notice Fallback function to receive ETH payments (if payment currency is ETH).
+    receive() external payable;
 }

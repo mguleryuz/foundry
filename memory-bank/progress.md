@@ -17,12 +17,21 @@
 - ✅ Access control via Ownable pattern
 - ✅ Interface definition for contract interaction
 
+### PreSaleOrchestrator_v1 Contract
+
+- ✅ Interface design for presale functionality completed
+- ✅ Comprehensive token flow definition
+- ✅ Clear separation between contribution requirements and token distribution
+- ✅ Multi-currency support (ETH and ERC20 tokens)
+- ✅ Dynamic calculation design for package pricing and distribution
+
 ## What's In Progress
 
 ### PreSaleOrchestrator_v1 Contract
 
-- 🔄 File created but implementation not started
-- 🔄 Interface design for pre-sale functionality
+- 🔄 Implementation of core contract logic based on the interface
+- 🔄 Whitelist management functionality
+- 🔄 Dynamic calculation implementation
 
 ### Testing
 
@@ -39,10 +48,10 @@
 
 ### PreSaleOrchestrator_v1 Implementation
 
-- ⏳ Core pre-sale mechanics
+- ⏳ State transition logic for whitelist and presale periods
 - ⏳ Token distribution logic
 - ⏳ Integration with ERC20Issuance_v1
-- ⏳ Access controls and security features
+- ⏳ Security features and edge case handling
 
 ### Documentation
 
@@ -58,10 +67,11 @@
 
 ## Current Status
 
-The project is in early development phase with the core token issuance contract mostly implemented. The pre-sale orchestrator contract exists but needs full implementation. The development environment is configured correctly with Foundry tooling and multi-network support.
+The project is in active development with the core token issuance contract mostly implemented. The presale orchestrator interface is now complete with a well-defined token flow that includes whitelist management, dynamic pricing, and distribution mechanics. Implementation of the presale orchestrator is the next major step.
 
 ## Known Issues
 
 - No automated tests implemented yet
-- PreSaleOrchestrator_v1 contract is empty and needs implementation
+- PreSaleOrchestrator_v1 contract implementation needed based on the interface
+- Edge cases in dynamic calculations need careful handling
 - No deployment scripts have been created yet for test networks
