@@ -18,7 +18,7 @@ contract DirectStatsTest is Test {
     IPreSaleOrchestrator_v1.PackageType private constant LARGE = IPreSaleOrchestrator_v1.PackageType.Large;
 
     function setUp() public {
-        presale = new PreSaleOrchestrator_v1();
+        presale = new PreSaleOrchestrator_v1(5 ether, 10 ether, 15 ether, address(0));
         presale.startWhitelistPeriod();
     }
 

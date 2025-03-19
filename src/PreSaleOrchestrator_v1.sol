@@ -36,11 +36,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     // Stats
     PresaleStats private _presaleStats;
 
-    // Ratio for package types (relative to small package which is 1)
-    uint256 private constant SMALL_PACKAGE_RATIO = 1;
-    uint256 private constant MEDIUM_PACKAGE_RATIO = 3;
-    uint256 private constant LARGE_PACKAGE_RATIO = 10;
-
     // Minimum contribution ratio (percentage of the full package requirement)
     uint256 private constant MIN_CONTRIBUTION_PERCENTAGE = 50; // 50%
 
@@ -49,10 +44,28 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
     /**
      * @notice Constructor to initialize the contract with the first admin
+     * @param smallRequirement The contribution requirement for small packages
+     * @param mediumRequirement The contribution requirement for medium packages
+     * @param largeRequirement The contribution requirement for large packages
+     * @param paymentCurrency The payment currency address (address(0) for ETH)
      */
-    constructor() {
+    constructor(
+        uint256 smallRequirement,
+        uint256 mediumRequirement,
+        uint256 largeRequirement,
+        address paymentCurrency
+    ) {
         _admins[msg.sender] = true;
         emit AdminAdded(msg.sender);
+
+        // Set contribution requirements
+        _contributionRequirement.smallPackageRequirement = smallRequirement;
+        _contributionRequirement.mediumPackageRequirement = mediumRequirement;
+        _contributionRequirement.largePackageRequirement = largeRequirement;
+
+        // Set payment currency
+        _presaleConfig.paymentCurrency = paymentCurrency;
+        emit PaymentCurrencySet(paymentCurrency);
 
         // Initialize presale config
         _presaleConfig.whitelistStatus = ProcessStatus.Inactive;
@@ -134,16 +147,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
     }
 
     /**
-     * @notice Ensures the payment currency is set
-     */
-    modifier paymentCurrencySet() {
-        if (_presaleConfig.paymentCurrency == address(0)) {
-            revert IPreSaleOrchestrator__PaymentCurrencyIsNotSet();
-        }
-        _;
-    }
-
-    /**
      * @notice Ensures the distribution token is set
      */
     modifier distributionTokenSet() {
@@ -174,18 +177,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         }
         _admins[_admin] = false;
         emit AdminRemoved(_admin);
-    }
-
-    /**
-     * @inheritdoc IPreSaleOrchestrator_v1
-     */
-    function setPaymentCurrency(address _currency) external override onlyAdmin {
-        // Cannot change payment currency after presale has started
-        if (_presaleConfig.preSaleStatus != ProcessStatus.Inactive) {
-            revert IPreSaleOrchestrator__CannotChangeAfterPresaleStarted();
-        }
-        _presaleConfig.paymentCurrency = _currency;
-        emit PaymentCurrencySet(_currency);
     }
 
     /**
@@ -639,18 +630,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
 
         emit TokenDistributionCalculated(smallShare, mediumShare, largeShare);
 
-        // Set up contribution requirements with fixed ratios
-        // For testing, use simple values based on package ratios
-        _contributionRequirement.smallPackageRequirement = 1 ether;
-        _contributionRequirement.mediumPackageRequirement = 3 ether;
-        _contributionRequirement.largePackageRequirement = 10 ether;
-
-        emit ContributionRequirementsCalculated(
-            _contributionRequirement.smallPackageRequirement,
-            _contributionRequirement.mediumPackageRequirement,
-            _contributionRequirement.largePackageRequirement
-        );
-
         // Start presale
         _presaleConfig.preSaleStatus = ProcessStatus.Active;
         emit PreSaleStarted();
@@ -839,21 +818,24 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
             return (0, 0, 0);
         }
 
-        // Calculate the total weighted packages
-        // Each package type has a ratio: small=1, medium=3, large=10
-        uint256 totalWeightedPackages = _presaleStats.totalSmallPackages * SMALL_PACKAGE_RATIO
-            + _presaleStats.totalMediumPackages * MEDIUM_PACKAGE_RATIO
-            + _presaleStats.totalLargePackages * LARGE_PACKAGE_RATIO;
+        // Calculate the total weighted packages using contribution requirements as ratios
+        uint256 totalWeightedPackages = _presaleStats.totalSmallPackages
+            * _contributionRequirement.smallPackageRequirement
+            + _presaleStats.totalMediumPackages * _contributionRequirement.mediumPackageRequirement
+            + _presaleStats.totalLargePackages * _contributionRequirement.largePackageRequirement;
 
         // If there are no weighted packages, return zeros
         if (totalWeightedPackages == 0) {
             return (0, 0, 0);
         }
 
-        // Calculate token shares for each package type based on ratios
-        uint256 smallShare = totalDistributionAmount * SMALL_PACKAGE_RATIO / totalWeightedPackages;
-        uint256 mediumShare = totalDistributionAmount * MEDIUM_PACKAGE_RATIO / totalWeightedPackages;
-        uint256 largeShare = totalDistributionAmount * LARGE_PACKAGE_RATIO / totalWeightedPackages;
+        // Calculate token shares for each package type based on contribution requirements as ratios
+        uint256 smallShare =
+            totalDistributionAmount * _contributionRequirement.smallPackageRequirement / totalWeightedPackages;
+        uint256 mediumShare =
+            totalDistributionAmount * _contributionRequirement.mediumPackageRequirement / totalWeightedPackages;
+        uint256 largeShare =
+            totalDistributionAmount * _contributionRequirement.largePackageRequirement / totalWeightedPackages;
 
         return (smallShare, mediumShare, largeShare);
     }

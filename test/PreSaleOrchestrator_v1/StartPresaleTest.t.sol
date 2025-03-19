@@ -19,7 +19,7 @@ contract StartPresaleTest is Test {
     IPreSaleOrchestrator_v1.PackageType private constant LARGE = IPreSaleOrchestrator_v1.PackageType.Large;
 
     function setUp() public {
-        presale = new PreSaleOrchestrator_v1();
+        presale = new PreSaleOrchestrator_v1(500, 1000, 1500, address(0));
         token = new MockERC20("Test Token", "TST", 18);
 
         // Mint tokens

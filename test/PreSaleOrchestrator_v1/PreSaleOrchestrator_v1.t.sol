@@ -50,8 +50,13 @@ contract PreSaleOrchestratorTest is Test {
         distributionToken = new MockERC20("Distribution Token", "DIST", 18);
         paymentToken = new MockERC20("Payment Token", "PAY", 18);
 
-        // Deploy presale contract
-        presale = new PreSaleOrchestrator_v1();
+        // Deploy presale contract with ETH as payment by default (address(0))
+        presale = new PreSaleOrchestrator_v1(
+            PARTICIPATION_AMOUNT_SMALL,
+            PARTICIPATION_AMOUNT_MEDIUM,
+            PARTICIPATION_AMOUNT_LARGE,
+            address(0) // ETH as payment
+        );
 
         // Debug
         console.log("Presale initialized, whitelist status:", uint256(presale.getWhitelistPeriodStatus()));
@@ -79,9 +84,25 @@ contract PreSaleOrchestratorTest is Test {
         presale.setDistributionToken(address(distributionToken));
     }
 
-    // Helper function to create a fresh instance with setup
+    // Helper function to create a fresh instance with ETH payment
     function _createFreshInstance() internal {
-        presale = new PreSaleOrchestrator_v1();
+        presale = new PreSaleOrchestrator_v1(
+            PARTICIPATION_AMOUNT_SMALL,
+            PARTICIPATION_AMOUNT_MEDIUM,
+            PARTICIPATION_AMOUNT_LARGE,
+            address(0) // ETH as payment
+        );
+        _setupBasicConfig();
+    }
+
+    // Helper function to create a fresh instance with ERC20 payment
+    function _createFreshInstanceWithERC20() internal {
+        presale = new PreSaleOrchestrator_v1(
+            PARTICIPATION_AMOUNT_SMALL,
+            PARTICIPATION_AMOUNT_MEDIUM,
+            PARTICIPATION_AMOUNT_LARGE,
+            address(paymentToken) // ERC20 as payment
+        );
         _setupBasicConfig();
     }
 
@@ -112,8 +133,7 @@ contract PreSaleOrchestratorTest is Test {
 
     // Helper function for a complete presale setup with ERC20 as payment
     function _setupCompletePresaleWithERC20() internal {
-        _createFreshInstance();
-        presale.setPaymentCurrency(address(paymentToken));
+        _createFreshInstanceWithERC20();
 
         // Start whitelist period
         presale.startWhitelistPeriod();
@@ -154,13 +174,20 @@ contract PreSaleOrchestratorTest is Test {
         assertTrue(presale.getPresaleConfig().whitelistStatus == INACTIVE);
         assertTrue(presale.getPresaleConfig().preSaleStatus == INACTIVE);
 
-        // Test setting payment currency
-        presale.setPaymentCurrency(address(paymentToken));
-        assertEq(presale.getPaymentCurrency(), address(paymentToken));
+        // Test that payment currency was set during construction
+        assertEq(presale.getPaymentCurrency(), address(0)); // Default is ETH
 
         // Test setting distribution token
         presale.setDistributionToken(address(distributionToken));
         assertEq(presale.getDistributionToken(), address(distributionToken));
+    }
+
+    function testInitialContributionRequirements() public {
+        // Test that contribution requirements were set correctly during construction
+        IPreSaleOrchestrator_v1.ContributionRequirement memory reqs = presale.getContributionRequirements();
+        assertEq(reqs.smallPackageRequirement, PARTICIPATION_AMOUNT_SMALL);
+        assertEq(reqs.mediumPackageRequirement, PARTICIPATION_AMOUNT_MEDIUM);
+        assertEq(reqs.largePackageRequirement, PARTICIPATION_AMOUNT_LARGE);
     }
 
     function testAddAndRemoveAdmin() public {
@@ -169,8 +196,8 @@ contract PreSaleOrchestratorTest is Test {
 
         // Test as new admin
         vm.startPrank(newAdmin);
-        presale.setPaymentCurrency(address(paymentToken));
-        assertEq(presale.getPaymentCurrency(), address(paymentToken));
+        presale.setDistributionToken(address(distributionToken));
+        assertEq(presale.getDistributionToken(), address(distributionToken));
         vm.stopPrank();
 
         // Remove admin
@@ -179,7 +206,7 @@ contract PreSaleOrchestratorTest is Test {
         // Attempt action as removed admin should fail
         vm.startPrank(newAdmin);
         vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__CallerIsNotAdmin.selector);
-        presale.setPaymentCurrency(address(0));
+        presale.setDistributionToken(address(0));
         vm.stopPrank();
     }
 
@@ -188,8 +215,22 @@ contract PreSaleOrchestratorTest is Test {
         presale.removeAdmin(admin);
 
         // Should still be able to perform admin actions
-        presale.setPaymentCurrency(address(paymentToken));
-        assertEq(presale.getPaymentCurrency(), address(paymentToken));
+        presale.setDistributionToken(address(distributionToken));
+        assertEq(presale.getDistributionToken(), address(distributionToken));
+    }
+
+    function testPaymentCurrencySetAtDeployment() public {
+        // Test ETH payment
+        PreSaleOrchestrator_v1 ethPresale = new PreSaleOrchestrator_v1(
+            PARTICIPATION_AMOUNT_SMALL, PARTICIPATION_AMOUNT_MEDIUM, PARTICIPATION_AMOUNT_LARGE, address(0)
+        );
+        assertEq(ethPresale.getPaymentCurrency(), address(0));
+
+        // Test ERC20 payment
+        PreSaleOrchestrator_v1 erc20Presale = new PreSaleOrchestrator_v1(
+            PARTICIPATION_AMOUNT_SMALL, PARTICIPATION_AMOUNT_MEDIUM, PARTICIPATION_AMOUNT_LARGE, address(paymentToken)
+        );
+        assertEq(erc20Presale.getPaymentCurrency(), address(paymentToken));
     }
 
     //--------------------------------------------------------------------------
@@ -801,16 +842,60 @@ contract PreSaleOrchestratorTest is Test {
         assertTrue(presale.isDistributionComplete());
     }
 
-    //--------------------------------------------------------------------------
-    // New Tests for Configuration After Presale Started
-
-    function testCannotChangePaymentCurrencyAfterPresaleStarted() public {
+    function testDistributionWithSomeParticipants() public {
         _setupCompletePresaleWithETH();
 
-        // Try to change payment currency after presale has started
-        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__CannotChangeAfterPresaleStarted.selector);
-        presale.setPaymentCurrency(address(paymentToken));
+        // Only user1 and user3 participate, user2 doesn't
+        vm.startPrank(user1);
+        uint256 user1Contribution = presale.getUserMaxContribution(user1);
+        presale.participate{value: user1Contribution}(user1Contribution);
+        vm.stopPrank();
+
+        vm.startPrank(user3);
+        uint256 user3Contribution = presale.getUserMaxContribution(user3);
+        presale.participate{value: user3Contribution}(user3Contribution);
+        vm.stopPrank();
+
+        // End presale
+        presale.endPreSale();
+
+        // Distribute tokens
+        presale.distribute();
+
+        // Verify distribution completed
+        assertTrue(presale.isDistributionComplete());
+
+        // Verify only contributing users received tokens
+        assertTrue(distributionToken.balanceOf(user1) > 0);
+        assertEq(distributionToken.balanceOf(user2), 0);
+        assertTrue(distributionToken.balanceOf(user3) > 0);
+
+        // Get contribution requirements to check ratio
+        uint256 smallRequirement = presale.getContributionRequirement(SMALL);
+        uint256 largeRequirement = presale.getContributionRequirement(LARGE);
+
+        // Check if ratio between tokens is proportional to contribution requirements
+        // Using approximate comparison with 1% tolerance to handle rounding errors
+        uint256 user1Tokens = distributionToken.balanceOf(user1);
+        uint256 user3Tokens = distributionToken.balanceOf(user3);
+
+        // Expected ratio: user3 (large package) should get 10x the tokens of user1 (small package)
+        // when both contribute 100% of their maximum
+        uint256 expectedRatio = largeRequirement / smallRequirement;
+        uint256 actualRatio = user3Tokens / user1Tokens;
+
+        // Log values for debugging
+        console.log("User1 (small) tokens:", user1Tokens);
+        console.log("User3 (large) tokens:", user3Tokens);
+        console.log("Actual ratio (large:small):", actualRatio);
+        console.log("Expected ratio (large:small):", expectedRatio);
+
+        // Use relative comparison to verify the ratio is maintained
+        assertApproxEqRel(user3Tokens * smallRequirement, user1Tokens * largeRequirement, 0.01e18); // 1% tolerance
     }
+
+    //--------------------------------------------------------------------------
+    // New Tests for Configuration After Presale Started
 
     function testCannotChangeDistributionTokenAfterPresaleStarted() public {
         _setupCompletePresaleWithETH();

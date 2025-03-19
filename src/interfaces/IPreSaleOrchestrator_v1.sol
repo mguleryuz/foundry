@@ -45,11 +45,6 @@ interface IPreSaleOrchestrator_v1 {
     /// @notice The distribution is distributed to address.
     event DistributionDistributed(address indexed to, uint256 amount);
 
-    /// @notice Contribution requirements were dynamically calculated.
-    event ContributionRequirementsCalculated(
-        uint256 smallRequirement, uint256 mediumRequirement, uint256 largeRequirement
-    );
-
     /// @notice Token distribution shares were calculated.
     event TokenDistributionCalculated(uint256 smallShare, uint256 mediumShare, uint256 largeShare);
 
@@ -91,8 +86,6 @@ interface IPreSaleOrchestrator_v1 {
     error IPreSaleOrchestrator__PresaleNotActive();
 
     error IPreSaleOrchestrator__AmountIsHigherThanPackage();
-
-    error IPreSaleOrchestrator__PaymentCurrencyIsNotSet();
 
     error IPreSaleOrchestrator__DistributionTokenIsNotSet();
 
@@ -181,10 +174,6 @@ interface IPreSaleOrchestrator_v1 {
 
     /// @notice Removes an admin from the pre-sale orchestrator.
     function removeAdmin(address _admin) external;
-
-    /// @notice Sets the payment currency (admin only) (before presale period only).
-    /// @dev If set to address(0), payments are accepted in ETH, otherwise in the specified ERC20 token.
-    function setPaymentCurrency(address _currency) external;
 
     /// @notice Sets the distribution token (admin only) (before presale period only).
     /// @dev Distribution token is the token being sold in the presale.

@@ -15,7 +15,7 @@ contract DeployPreSaleOrchestrator_v1 is Script {
         vm.startBroadcast(privateKey);
 
         // Deploy the Token contract
-        PreSaleOrchestrator_v1 preSaleOrchestrator = new PreSaleOrchestrator_v1();
+        PreSaleOrchestrator_v1 preSaleOrchestrator = new PreSaleOrchestrator_v1(1 ether, 5 ether, 10 ether, address(0));
 
         // Log the address of the deployed contract
         console.log("Deployed PreSaleOrchestrator at address: ", address(preSaleOrchestrator));

@@ -19,7 +19,7 @@ contract SimpleStatsTest is Test {
     uint256 private constant ENDED = 3;
 
     function setUp() public {
-        presale = new PreSaleOrchestrator_v1();
+        presale = new PreSaleOrchestrator_v1(500, 1000, 1500, address(0));
 
         // Check initial status
         uint256 initialStatus = uint256(presale.getWhitelistPeriodStatus());

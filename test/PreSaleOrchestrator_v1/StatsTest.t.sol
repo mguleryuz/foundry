@@ -20,7 +20,7 @@ contract StatsTest is Test {
 
     function setUp() public {
         // Deploy presale contract
-        presale = new PreSaleOrchestrator_v1();
+        presale = new PreSaleOrchestrator_v1(500, 1000, 1500, address(0));
         console.log("Presale whitelist status:", uint256(presale.getWhitelistPeriodStatus()));
     }
 
