@@ -1,0 +1,69 @@
+# Cursor Rules for Foundry Smart Contract Project
+
+## Project Patterns
+
+### Code Style
+
+- Use 4-space indentation for Solidity files
+- Follow NatSpec documentation for all contracts and functions
+- Version contracts explicitly in file names (e.g., `ContractName_v1.sol`)
+- Separate interfaces from implementations with 'I' prefix
+
+### Architectural Patterns
+
+- Always define interfaces for contract functionality
+- Use OpenZeppelin contracts for standard functionality when possible
+- Implement proper access control for sensitive functions
+- Use custom errors instead of revert strings for gas efficiency
+
+### Development Workflow
+
+- Write tests for all contract functionality
+- Test on Anvil local node before deploying to testnets
+- Verify contract code on Etherscan after deployment
+- Keep foundry.toml updated with network configurations
+
+## File Organization
+
+- `src/` - Contract source files
+- `src/interfaces/` - Contract interfaces
+- `test/` - Test files
+- `script/` - Deployment scripts
+- `lib/` - Dependencies
+
+## Testing Standards
+
+- Unit test each function individually
+- Test edge cases and failure modes
+- Use fuzz testing for parameter validation
+- Simulate different network conditions when relevant
+
+## Security Principles
+
+- Always restrict access to sensitive functions
+- Validate all inputs thoroughly
+- Follow the checks-effects-interactions pattern
+- Consider gas optimization without sacrificing readability
+
+## Production Readiness
+
+- Contracts should not contain any hardcoded test values
+- Tests should simulate production behavior as much as possible
+- If test-specific behavior is needed, modify the tests, not the contract
+- When different behavior is needed between test and production, prefer configurable parameters
+- All contract functions should work identically in production as they do in tests
+
+## Test Integration
+
+- Tests should test actual production behavior
+- Mock external services and dependencies, not internal contract logic
+- Maintain production-ready code at all times
+- When external integrations require special handling, use interfaces and dependency injection
+
+## Tool Usage
+
+- Use `forge build` to compile contracts
+- Use `forge test` to run tests
+- Use `forge fmt` to format code
+- Use `anvil` for local development
+- Use `cast` for contract interaction

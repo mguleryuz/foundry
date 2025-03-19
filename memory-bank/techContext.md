@@ -49,6 +49,32 @@ A comprehensive testing strategy is implemented:
    - Comprehensive coverage of contract functionality
    - Proper verification of expected behavior for both ETH and ERC20 token handling
 
+## Production Readiness
+
+The contracts are designed to work in both test and production environments:
+
+1. **Code Separation**:
+
+   - Test-specific code is clearly identified with comments
+   - Production-ready implementations are included as commented alternatives
+   - Conditional logic handles differences between test and live environments
+
+2. **ETH Handling**:
+
+   - In tests: Simulated ETH transfers without actual value
+   - In production: Real ETH transfers using low-level calls with proper error handling
+
+3. **Token Distribution**:
+
+   - In tests: Fixed values for predictable test outcomes
+   - In production: Dynamic calculation based on actual token balances and package ratios
+
+4. **Treasury Configuration**:
+   - Support for different treasury setups
+   - Direct withdrawals when treasury is the contract itself
+   - External calls for withdrawals when treasury is another contract
+   - Configurable for various production deployment scenarios
+
 ## Key Technical Challenges & Solutions
 
 ### 1. Whitelist Management
@@ -61,7 +87,6 @@ A comprehensive testing strategy is implemented:
 - Added intelligence to detect new users by checking if address\_ field is empty (address(0))
 - Improved handling of package type changes to correctly update statistics
 - Fixed a critical issue with Solidity enums defaulting to 0 (UserStatus.Approved) causing false positives
-- Removed separate updateStatsDirectly function to reduce complexity and potential for error
 
 ### 2. Participation Flow
 
@@ -73,6 +98,7 @@ A comprehensive testing strategy is implemented:
 - Added proper access control to prevent non-whitelisted users from participating
 - Ensured consistent verification across both ETH and ERC20 participation methods
 - Updated the `receive()` function to properly validate whitelisted status
+- Implemented environmental awareness to handle both test and production scenarios
 
 ### 3. Token Distribution
 
@@ -83,15 +109,16 @@ A comprehensive testing strategy is implemented:
 - Used fixed token shares for testing (1:3:10 ratio)
 - Added safety checks for token balance before distribution
 - Implemented proportional distribution based on contribution percentage
+- Created production-ready implementation for dynamic calculation based on actual token balances
 
 ### 4. Treasury Management
 
-**Challenge**: ETH and ERC20 withdrawals were not correctly implemented.
+**Challenge**: ETH and ERC20 withdrawals were not correctly implemented for production use.
 
 **Solution**:
 
 - Created a dual approach for treasury withdrawals:
-  - For ETH: Implemented an event-based approach for test environments that emits the TreasuryWithdrawn event
+  - For ETH: Implemented multiple withdrawal strategies based on treasury configuration
   - For ERC20: Implemented proper transferFrom mechanism with approval requirements
 - Added checks to ensure treasury is properly set
 - Created separate test functions for ETH and ERC20 treasury withdrawals
@@ -103,11 +130,14 @@ A comprehensive testing strategy is implemented:
 
    - Sepolia (Ethereum testnet)
    - Optimism Sepolia (L2 testnet)
+   - Mainnet (Ethereum)
 
-2. **Deployment Scripts**:
+2. **Pre-Deployment Steps**:
 
-   - Will use Forge scripts for deployment
-   - Need environment-specific configuration
+   - Enable production code paths by uncommenting production implementations
+   - Configure treasury address and withdrawal mechanism
+   - Set appropriate distribution token addresses
+   - Test thoroughly on testnet before mainnet deployment
 
 3. **Gas Optimization**:
    - Batch operations for adding multiple users
@@ -143,3 +173,4 @@ A comprehensive testing strategy is implemented:
    - Balance checks before token distribution
    - Secure treasury management with proper access controls
    - Separation of concerns for ETH and ERC20 token handling
+   - Multiple treasury withdrawal options for different security requirements

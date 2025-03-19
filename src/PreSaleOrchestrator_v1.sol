@@ -308,21 +308,8 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         // Update stats
         _presaleStats.totalContributionsReceived += _amount;
 
-        // Ensure ETH is sent to treasury properly
-        // In testing environments, simulate the transfer to make tests pass
-        (bool success,) =
-            payable(_presaleConfig.treasury).call{value: address(this).balance >= _amount ? _amount : 0}("");
-
-        // If we're in a test environment where no ETH was actually sent but we need to simulate it
-        if (!success && msg.value == 0) {
-            // Simulated success for testing
-            success = true;
-
-            // We're manually dealing ETH to the treasury in tests
-            // This is an empty block - in the test environment, the test framework
-            // is responsible for giving the treasury the right balance
-        }
-
+        // Forward ETH to treasury
+        (bool success,) = payable(_presaleConfig.treasury).call{value: msg.value}("");
         require(success, "ETH transfer failed");
 
         emit UserParticipated(_user, _amount);
@@ -373,9 +360,19 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
         }
 
         if (_presaleConfig.paymentCurrency == address(0)) {
-            // For test environment only - this would be different in production
-            // Simply emit the event since we can't actually transfer ETH from treasury
-            // In production, this would be handled differently with proper access controls
+            // ETH withdrawal
+            // Check if the treasury is this contract
+            if (_presaleConfig.treasury == address(this)) {
+                // If treasury is this contract, directly transfer ETH to admin
+                (bool success,) = payable(msg.sender).call{value: _amount}("");
+                require(success, "ETH transfer failed");
+            } else {
+                // For external treasury contracts, call withdraw function
+                (bool success,) = _presaleConfig.treasury.call(
+                    abi.encodeWithSignature("withdraw(address,uint256)", msg.sender, _amount)
+                );
+                require(success, "Treasury withdrawal failed");
+            }
             emit TreasuryWithdrawn(_amount);
         } else {
             // For ERC20, transfer from treasury to admin
@@ -869,10 +866,29 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
             return (0, 0, 0);
         }
 
-        // For testing with fixed amounts, independent of the actual distribution balance
-        uint256 smallShare = 1_000 * 10 ** 18; // 1,000 tokens
-        uint256 mediumShare = 3_000 * 10 ** 18; // 3,000 tokens
-        uint256 largeShare = 10_000 * 10 ** 18; // 10,000 tokens
+        // Get the total distribution amount
+        uint256 totalDistributionAmount = getDistributionBalance();
+
+        // If there's no distribution amount, return zeros
+        if (totalDistributionAmount == 0) {
+            return (0, 0, 0);
+        }
+
+        // Calculate the total weighted packages
+        // Each package type has a ratio: small=1, medium=3, large=10
+        uint256 totalWeightedPackages = _presaleStats.totalSmallPackages * SMALL_PACKAGE_RATIO
+            + _presaleStats.totalMediumPackages * MEDIUM_PACKAGE_RATIO
+            + _presaleStats.totalLargePackages * LARGE_PACKAGE_RATIO;
+
+        // If there are no weighted packages, return zeros
+        if (totalWeightedPackages == 0) {
+            return (0, 0, 0);
+        }
+
+        // Calculate token shares for each package type based on ratios
+        uint256 smallShare = totalDistributionAmount * SMALL_PACKAGE_RATIO / totalWeightedPackages;
+        uint256 mediumShare = totalDistributionAmount * MEDIUM_PACKAGE_RATIO / totalWeightedPackages;
+        uint256 largeShare = totalDistributionAmount * LARGE_PACKAGE_RATIO / totalWeightedPackages;
 
         return (smallShare, mediumShare, largeShare);
     }

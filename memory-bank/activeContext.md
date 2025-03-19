@@ -2,54 +2,55 @@
 
 ## Current Focus
 
-The current focus is on improving and refining the PreSaleOrchestrator_v1 contract. The contract manages a presale process that involves:
+The current focus is on ensuring the PreSaleOrchestrator_v1 contract is fully production-ready without any test-specific code. The contract manages a presale process that involves:
 
 1. Whitelisting users with different package types
 2. Handling deposits/contributions of distribution tokens
 3. Calculating token distribution dynamically based on participation
 4. Managing both ETH and ERC20 tokens for participation and treasury operations
+5. Ensuring all functionality works identically in production environments
 
 ## Recent Changes
 
-1. **Automatic Stats Tracking**: Removed the `updateStatsDirectly` function in favor of automatic stats tracking within the whitelist management functions (`addWhitelisted` and `batchAddWhitelisted`).
+1. **Production-Ready Token Distribution**: Replaced hardcoded test values in `calculateTokenDistribution` with dynamic calculation based on actual token balances and package distribution.
 
-2. **User Tracking Improvement**: Fixed a critical issue where new users weren't properly identified. This was because Solidity enum types default to 0 (which corresponds to `UserStatus.Approved`), causing incorrect behavior. Added a check for empty `address_` field to properly identify new users.
+2. **ETH Transfer Handling**: Improved the `_participateInternal` function to always forward real ETH transfers to the treasury, removing test-specific conditional logic.
 
-3. **Package Type Change Handling**: Improved how the contract handles stats updates when users change package types, ensuring accurate tracking across all operations.
+3. **Treasury Withdrawal Implementation**: Enhanced the `withdrawTreasury` function with proper implementation for external treasury contracts, removing test-specific event emissions.
 
-4. **Treasury Withdrawal Fix**: Enhanced the `withdrawTreasury` function to work correctly with both ETH and ERC20 tokens, properly handling the withdrawal mechanics.
+4. **Test Updates**: Modified tests to work with production-ready code, using real ETH transfers and appropriate assertions for dynamic token calculation.
 
-5. **Test Suite Fixes**: Fixed all tests to ensure they correctly verify contract behavior:
-   - Fixed `testCannotParticipateWhenNotWhitelisted` to properly test the receive function behavior
-   - Implemented proper ETH withdrawal tests
-   - Removed redundant tests that were causing confusion
+5. **Core Principle Establishment**: Established the principle that smart contracts should not contain any hardcoded test values, and tests should simulate production behavior.
 
-## Test Issues Solved
+## Key Principles
 
-1. **User Tracking**: Fixed statistical tracking for new users and package type changes. User status is now properly tracked using empty address fields to identify new users rather than relying on the enum default.
+1. **No Hardcoded Test Values**: Contracts should not contain any hardcoded values specifically for testing purposes.
 
-2. **Participation Flow**: Ensured all tests are working with the automatic stats tracking, with no need to manually call a separate function to update statistics.
+2. **Tests Simulate Production**: Test environments should simulate production behavior as much as possible.
 
-3. **ETH Withdrawal Testing**: Corrected the treasury withdrawal tests to properly verify both ETH and ERC20 withdrawal functionality.
+3. **Modify Tests, Not Contracts**: If test-specific behavior is needed, modify the tests rather than adding conditional logic to the contract.
 
-4. **Non-whitelisted User Behavior**: Fixed tests to properly verify that non-whitelisted users cannot participate in the presale.
+4. **Production-Ready Always**: Maintain production-ready code at all times, avoiding any test-specific paths or behavior.
 
 ## Next Steps
 
 1. **Gas Optimization**: Review gas usage and optimize the contract for production use.
 
-2. **Documentation**: Update NatSpec and inline documentation to reflect the automatic stats management and treasury functionality.
+2. **Deployment Scripts**: Create deployment scripts for mainnet and testnet environments, ensuring proper configuration for production.
 
-3. **Deployment Scripts**: Create deployment scripts for mainnet and testnet environments.
+3. **Audit**: Conduct a thorough security audit before deploying to production.
 
-4. **Security Review**: Conduct a thorough security review of the contract before production deployment.
+4. **Documentation**: Ensure all production-specific code changes are properly documented for the deployment team.
 
 ## Active Decisions and Considerations
 
-1. **Stats Management**: The decision to remove manual stats updates in favor of automatic tracking has simplified the contract and reduced potential for human error.
+1. **Token Distribution Calculation**: Using actual token balance and package distribution for calculating share values.
 
-2. **User Detection**: The implementation now uses the `address_` field to determine if a user is new, rather than relying on the enum state which defaults to zero.
+2. **ETH Transfer Management**: Direct ETH transfers to treasury with proper error handling.
 
-3. **ETH Withdrawal Design**: The contract uses a simplified event-based approach for ETH withdrawals in test environments, but would need a more robust implementation for production.
+3. **Treasury Flexibility**: Supporting multiple treasury configurations:
 
-4. **Test Suite Structure**: Some tests were modified or removed to maintain clarity and avoid redundancy, with special focus on ensuring all core functionality is properly tested.
+   - Treasury as this contract (direct transfer)
+   - Treasury as external contract (call withdraw function)
+
+4. **Test Adaptation**: Maintaining test coverage by adapting tests to work with production code rather than modifying the contract for tests.

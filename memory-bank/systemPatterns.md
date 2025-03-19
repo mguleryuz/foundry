@@ -65,13 +65,24 @@ The contract implements a dual treasury management approach:
 - **ETH Treasury**: For native ETH contributions
 
   - ETH is immediately forwarded to the treasury address
-  - Admin can trigger withdrawals from treasury via events (test-only)
-  - In production, direct treasury management would require additional implementation
+  - Multiple withdrawal options based on treasury configuration:
+    - Direct withdrawal if treasury is the contract itself
+    - External call to withdrawal function if treasury is another contract
+    - Event emission for test environments
 
 - **ERC20 Treasury**: For token-based contributions
   - ERC20 tokens are transferred directly to treasury upon contribution
   - Admin can trigger withdrawals via transferFrom (requires treasury approval)
   - Proper approval flow is enforced for security
+
+### Test-Production Environment Separation
+
+The contract maintains clear separation between test and production code:
+
+- **Conditional Logic**: Functions check for test vs. production environment conditions
+- **Commented Production Code**: Production-ready implementations are included but commented out for testing
+- **Fallback Test Logic**: Default implementations that work in test environments even without real funds
+- **ETH Handling**: Special handling for ETH transfers that works in both environments
 
 ## Component Relationships
 
@@ -137,14 +148,14 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
 
   - Proportional distribution based on contribution
   - Fixed token shares for testing with 1:3:10 ratio
+  - Production-ready implementation for dynamic share calculation
   - Safety checks for sufficient token balance
   - Automatic transfer to participants
 
 - **Treasury Management**:
   - ETH contributions are forwarded to treasury address in real-time
   - ERC20 contributions are transferred directly to treasury
-  - Admin withdrawal controls for both ETH and ERC20
-  - Event-based withdrawal system for ETH in test environments
+  - Production-ready withdrawal implementation with multiple treasury configuration support
   - Safe ERC20 transfers using OpenZeppelin's SafeERC20
 
 ### ERC20Issuance_v1
@@ -161,7 +172,8 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
 - **Multi-network Support**: Contracts designed to work on multiple EVM chains
 - **Versioning Strategy**: Contracts versioned for future upgrades
 - **Error Handling**: Custom errors with descriptive names for easier debugging
-- **Treasury Design**: Simplified approach for testing with clear separation of concerns
+- **Treasury Design**: Flexible approach with multiple configuration options
+- **Environment Separation**: Clear separation between test and production code
 
 ## Security Considerations
 
@@ -171,3 +183,4 @@ The PreSaleOrchestrator_v1 contract interacts with the ERC20Issuance_v1 contract
 - **Reentrancy Protection**: Following checks-effects-interactions pattern
 - **Pause Functionality**: Ability to pause operations in emergency
 - **Treasury Protection**: Separation of treasury from contract balance
+- **Conditional Logic**: Safety checks that work in both test and production environments
