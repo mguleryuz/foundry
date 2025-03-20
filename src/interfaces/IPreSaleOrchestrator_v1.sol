@@ -304,12 +304,6 @@ interface IPreSaleOrchestrator_v1 {
     /// @dev Returns token shares for small, medium, and large packages respectively.
     function calculateTokenDistribution() external view returns (uint256, uint256, uint256);
 
-    /// @notice Validates if the current distribution amount is sufficient for all whitelisted users.
-    /// @dev Used to check if there's enough distribution token before starting presale.
-    /// @return sufficient True if distribution amount is sufficient, false otherwise.
-    /// @return requiredAmount The total amount required for all whitelisted users.
-    function isDistributionSufficient() external view returns (bool sufficient, uint256 requiredAmount);
-
     /// @notice Fallback function to receive ETH payments (if payment currency is ETH).
     receive() external payable;
 }

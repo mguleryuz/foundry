@@ -795,12 +795,10 @@ contract PreSaleOrchestratorTest is Test {
 
         presale.endWhitelistPeriod();
 
-        // Deposit a tiny amount of distribution tokens (not enough for allocation)
-        distributionToken.approve(address(presale), 1);
-        presale.depositDistribution(1);
+        // Do not deposit any distribution tokens
 
-        // Starting presale with insufficient distribution should fail
-        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__DistributionAmountInsufficient.selector);
+        // Starting presale with no distribution should fail
+        vm.expectRevert(IPreSaleOrchestrator_v1.IPreSaleOrchestrator__DistributionIsNotDeposited.selector);
         presale.startPreSale();
     }
 

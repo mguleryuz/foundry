@@ -544,10 +544,9 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
             revert IPreSaleOrchestrator__NoWhitelistedUsers();
         }
 
-        // Check if distribution token deposit is sufficient
-        (bool sufficient,) = isDistributionSufficient();
-        if (!sufficient) {
-            revert IPreSaleOrchestrator__DistributionAmountInsufficient();
+        // Check if distribution token deposit exists
+        if (getDistributionBalance() == 0) {
+            revert IPreSaleOrchestrator__DistributionIsNotDeposited();
         }
 
         // Calculate token distribution shares
@@ -750,28 +749,6 @@ contract PreSaleOrchestrator_v1 is IPreSaleOrchestrator_v1 {
             totalDistributionAmount * _contributionRequirement.largePackageRequirement / totalWeightedPackages;
 
         return (smallShare, mediumShare, largeShare);
-    }
-
-    /**
-     * @inheritdoc IPreSaleOrchestrator_v1
-     */
-    function isDistributionSufficient() public view override returns (bool, uint256) {
-        uint256 distributionAmount = getDistributionBalance();
-
-        // A large amount of tokens should be sufficient
-        if (distributionAmount > 10 ** 30) {
-            return (true, 0);
-        }
-
-        // For testing purposes, we'll return a simple check
-        // This would need to be more complex in production
-        if (_presaleStats.totalWhitelistedUsers > 0) {
-            // Simple rule: at least 1000 tokens per user
-            uint256 requiredAmount = _presaleStats.totalWhitelistedUsers * 1000 * 10 ** 18;
-            return (distributionAmount >= requiredAmount, requiredAmount);
-        } else {
-            return (false, 0);
-        }
     }
 
     /**
